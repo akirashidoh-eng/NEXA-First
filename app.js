@@ -7,6 +7,16 @@ function load(){try{const current=JSON.parse(localStorage.getItem(KEY)||"null");
 let data=load();
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function persist(){localStorage.setItem(KEY,JSON.stringify(data));}
+function saveNote(){
+ const v=$('noteInput').value.trim();
+ if(!v){addMsg('nexa','作業メモが空だよ。内容を入力してね。');return}
+ data.notes=data.notes||[];
+ data.notes.push({text:v,time:now()});
+ persist();
+ $('noteInput').value='';
+ render();
+ addMsg('nexa','作業メモを保存した。次回の再開時にも確認できる。');
+}
 function addMsg(role,text,save=true){const el=document.createElement("div");el.className="msg "+(role==="user"?"user":"nexa");el.textContent=text;$('chat').appendChild(el);$('chat').scrollTop=$('chat').scrollHeight;if(save){data.messages.push({role,text});persist()}}
 function listHtml(items,empty){return items.length?items.map((x,i)=>`<div class="item"><b>${i+1}.</b> ${esc(x.text||x.choice)}<span class="small">${x.priority?"｜優先度："+esc(x.priority):""}${x.time?"｜"+esc(x.time):""}</span></div>`).join(""):empty}
 function render(){
@@ -17,6 +27,7 @@ function render(){
  $('unresolved').innerHTML=listHtml(data.unresolved.slice(-8),'未解決事項はありません。');
  $('doNot').innerHTML=listHtml(data.doNot.slice(-8),'保留・非実装項目はありません。');
  $('priorities').innerHTML=listHtml(data.priorities.slice(-8),'まだありません。');
+$('notes').innerHTML=listHtml(data.notes.slice(-8),'作業メモはありません。');
  $('recommendations').innerHTML=data.recommendations.length?data.recommendations.slice(-6).map((x,i)=>`<div class="item"><b>${i+1}.</b> ${esc(x.text)}<br><span class="small">理由：${esc(x.reason)}｜確信度：${esc(x.confidence)}｜重要度：${esc(x.importance)}｜${esc(x.time)}</span></div>`).join(''):'まだありません。';
 }
 function saveState(){data.goal=$('goal').value.trim();data.state=$('state').value.trim();data.next=$('next').value.trim();persist();addMsg('nexa','状態を保存した。目的・現在地・次の一手・前提条件を基準に再開できる。');}
