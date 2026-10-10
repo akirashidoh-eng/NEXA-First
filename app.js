@@ -2,7 +2,7 @@ const KEY="nexa_first_state_v3";
 const OLD_KEY="nexa_first_state_v2";
 const $=id=>document.getElementById(id);
 const now=()=>new Date().toLocaleString("ja-JP");
-const base={goal:"",state:"",next:"",assumptions:[],decisions:[],lastChoice:null,messages:[],unresolved:[],doNot:[],recommendations:[],priorities:[]};
+const base={goal:"",state:"",next:"",assumptions:[],decisions:[],lastChoice:null,messages:[],unresolved:[],doNot:[],recommendations:[],priorities:[],notes:[]};
 function load(){try{const current=JSON.parse(localStorage.getItem(KEY)||"null");if(current)return {...base,...current};const old=JSON.parse(localStorage.getItem(OLD_KEY)||"null");if(old){const migrated={...base,...old,priorities:old.priorities||[]};localStorage.setItem(KEY,JSON.stringify(migrated));return migrated}return {...base}}catch{return {...base}}}
 let data=load();
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
