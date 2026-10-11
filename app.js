@@ -47,10 +47,50 @@ function contradiction(v){
  return null;
 }
 function decisionWords(v){return /決めた|決定|選ぶ|選んだ|これでいく|これで行く|①|②|③|やる|やめる|進める|採用|却下/.test(v)}
+
+let stateCandidate = null;
+
+function showStateCandidate(type, text) {
+  stateCandidate = { type, text };
+  $('candidateText').textContent =
+    (type === 'state' ? '現在の状況' : '次にやること') + '：' + text;
+  $('updateCandidate').hidden = false;
+}
+
+function acceptStateCandidate() {
+  if (!stateCandidate) return;
+
+  if (stateCandidate.type === 'state') {
+    data.state = stateCandidate.text;
+    $('state').value = stateCandidate.text;
+  } else if (stateCandidate.type === 'next') {
+    data.next = stateCandidate.text;
+    $('next').value = stateCandidate.text;
+  } else {
+    return;
+  }
+
+  persist();
+  $('updateCandidate').hidden = true;
+  const label = stateCandidate.type === 'state'
+    ? '現在の状況'
+    : '次にやること';
+  stateCandidate = null;
+
+  addMsg('nexa', label + 'を更新して保存した。');
+}
+
+function dismissStateCandidate() {
+  stateCandidate = null;
+  $('updateCandidate').hidden = true;
+  addMsg('nexa', '更新候補を見送った。保存状態は変更していないよ。');
+}
+
 function analyze(v){
- 
  const stopPhrase = /^(?:今日はここまで(?:作業し、続きは明日確認する|[。.!！]\s*(?:続きは明日確認する|明日は続きから|明日また続けよう)|にする|です?|にします)?|今日は(?:もう)?作業を終了(?:する|します)?|今日は終了(?:です|します)?(?:[。.!！]\s*また明日)?|本日の作業は(?:終了(?:する|です|します)?|ここまで(?:です|にします)?)|今日はここまで[。.!！]\s*明日は続きから)[。.!！\s]*$/.test(v);
  const uncertain = /迷っている|迷う|どうしよう|検討中|かもしれない|まだ決めていない|決めかねる/.test(v);
+
+ 
  if(stopPhrase && !uncertain){
   data.notes=data.notes||[];
   data.notes.push({text:'作業終了報告：'+v,time:now()});
@@ -79,6 +119,17 @@ function analyze(v){
  if(/前提|条件/.test(v)){data.assumptions.push({text:v,time:now()});persist();addMsg('nexa','前提条件として記録した。今後この条件と矛盾する案が出たら、NEXAが止めて確認する。');render();return}
  if(/保留|後で|2号機|初号機には入れない|不要/.test(v)){data.doNot.push({text:v,time:now()});persist();addMsg('nexa','今は保留・非実装候補として記録した。初号機を膨らませすぎない。');render();return}
  if(/未解決|決まってない|まだ決めてない/.test(v)){data.unresolved.push({text:v,time:now()});persist();addMsg('nexa','未解決事項として記録した。次回再開時にも確認できる。');render();return}
+ const progressMatch = v.match(
+  /^(?:確認できた|確認済み|テストに成功|動作確認に成功|実装できた|追加できた|修正できた|コミットした|デプロイ成功)[：:、 ]*(.{2,100})[。.!！]*$/
+ );
+
+ if (progressMatch && !uncertain) {
+  showStateCandidate('state', progressMatch[0]);
+  addMsg('nexa',
+   '明確な進捗を検出したよ。現在の状況の更新候補を表示した。内容を確認して、反映するか見送るか選んでね。'
+  );
+  return;
+ }
  addMsg('nexa','受け取った。目的→現在地→次の一手を軸に、優先順位・前提との矛盾・判断変更・未解決事項・保留事項を見て、必要な時だけ介入する。事実／推測／意見も分けて扱う。\n\n※初号機では自然言語理解に限界があるため、曖昧な内容は断定しない。');
 }
 function send(){const v=$('message').value.trim();if(!v)return;addMsg('user',v);$('message').value='';analyze(v)}
