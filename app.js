@@ -78,40 +78,82 @@ function dismissStateCandidate() {
   $('updateCandidate').hidden = true;
   addMsg('nexa', '更新候補を見送った。保存状態は変更していないよ。');
 }
+
 function buildContextReply(v) {
-  const text = v.trim().slice(0, 100);
+  const text = String(v || "").trim().slice(0, 100);
   const goal = (data.goal || "").trim();
   const state = (data.state || "").trim();
   const next = (data.next || "").trim();
-  let reply;
-  if (/なぜ|どうして|理由/.test(text)) {
-    reply = `その理由を整理しよう。まず、確認できている事実と推測を分けて考えるね。`;
-  } else if (/教えて|知りたい|説明/.test(text)) {
-    reply = `知りたいことを一つずつ整理しよう。分からない点は、無理に断定しないよ。`;
-  } else if (/困|問題|エラー|動かない|失敗/.test(text)) {
-    reply = `問題を切り分けよう。今分かっていることと、まだ確認できていないことを分けて考えるね。`;
-  } else {
-    reply = `今の入力は「${text}」だね。`;
-  }
-  const context = [];
-  if (goal) context.push(`目的は「${goal}」`);
-  if (state) context.push(`現在地は「${state}」`);
-  if (next) context.push(`次の一手は「${next}」`);
+  const unresolved = Array.isArray(data.unresolved)
+    ? data.unresolved.length
+    : 0;
 
-  if (context.length) {
-    reply += `\n\n記録を確認すると、${context.join("、")}。`;
-  } else {
-    reply += `\n\n目的・現在地・次の一手の記録を確認しながら進めよう。`;
+  let reply = "";
+
+  // 進捗・現在地・次の行動についての質問
+  if (/どこまで|進捗|進んだ|できてる|できている|現状|現在地|今の状態|次に何|次は何|何をすべき|次の一手/.test(text)) {
+    reply = "NEXAの現在地を整理するね。";
+
+    reply += "\n\n【目的】" + (goal || "未設定");
+    reply += "\n【現在地】" + (state || "未記録");
+    reply += "\n【次の一手】" + (next || "未設定");
+    reply += "\n【未解決事項】" + unresolved + "件";
+    reply += "\n\nこれは保存された記録に基づく報告だよ。";
   }
-  if (data.unresolved.length > 0) {
-    reply += `\n未解決事項が${data.unresolved.length}件あるよ。必要なら、そこから確認しよう。`;
+
+  // 理由を尋ねる質問
+  else if (/なぜ|どうして|理由/.test(text)) {
+    reply = "理由を整理するね。";
+    reply += "\n確認できている事実と推測を分けて考えよう。";
+    reply += "\n質問の対象が曖昧なら、確認してから答えるよ。";
   }
-  reply += `\n\n入力の意図を取り違えていたら、修正するよ。`;
+
+  // 問題・トラブルについての質問
+  else if (/困|問題|エラー|動かない|失敗|不具合/.test(text)) {
+    reply = "問題を一つずつ切り分けよう。";
+    reply += "\nまず、起きていることと期待した結果の違いを確認しよう。";
+    reply += "\n原因が分かるまでは、決めつけて変更しないよ。";
+  }
+
+  // 説明を求める質問
+  else if (/教えて|知りたい|説明|とは何|どういう意味/.test(text)) {
+    reply = "質問に直接答えられるよう、内容を整理するね。";
+    reply += "\n分からないことは断定せず、必要なら確認するよ。";
+  }
+
+  // その他の質問
+  else {
+    reply = "「" + text + "」という入力を受け取ったよ。";
+    reply += "\n質問の内容を整理して、必要な情報を確認しながら進めるね。";
+  }
+
+  // 保存された状況を補足
+  const context = [];
+
+  if (goal) context.push("目的は「" + goal + "」");
+  if (state) context.push("現在地は「" + state + "」");
+  if (next) context.push("次の一手は「" + next + "」");
+
+  if (
+    context.length > 0 &&
+    !/どこまで|進捗|進んだ|できてる|できている|現状|現在地|今の状態|次に何|次は何|何をすべき|次の一手/.test(text)
+  ) {
+    reply += "\n\n記録を確認すると、" + context.join("、") + "。";
+  }
+
+  if (unresolved > 0) {
+    reply += "\n未解決事項は" + unresolved + "件あるよ。";
+  }
+
+  reply += "\n\n意図と違っていたら、修正するよ。";
+
   return reply;
 }
+
 function analyze(v){
  const stopPhrase = /^(?:今日はここまで(?:作業し、続きは明日確認する|[。.!！]\s*(?:続きは明日確認する|明日は続きから|明日また続けよう)|にする|です?|にします)?|今日は(?:もう)?作業を終了(?:する|します)?|今日は終了(?:です|します)?(?:[。.!！]\s*また明日)?|本日の作業は(?:終了(?:する|です|します)?|ここまで(?:です|にします)?)|今日はここまで[。.!！]\s*明日は続きから)[。.!！\s]*$/.test(v);
  const uncertain = /迷っている|迷う|どうしよう|検討中|かもしれない|まだ決めていない|決めかねる/.test(v);
+
  if(stopPhrase && !uncertain){
   data.notes=data.notes||[];
   data.notes.push({text:'作業終了報告：'+v,time:now()});
@@ -120,8 +162,10 @@ function analyze(v){
   addMsg('nexa','了解。今日はここまでにしよう。作業終了の報告を作業メモに保存した。現在地と次の一手は自動変更していないよ。お疲れさま！');
   return;
  }
-  const prev=data.lastChoice;
- const conflict=contradiction(v);if(conflict){addMsg('nexa','⚠️ 矛盾候補を検知。\n'+conflict);}
+
+ const prev=data.lastChoice;
+ const conflict=contradiction(v);
+ if(conflict){addMsg('nexa','⚠️ 矛盾候補を検知。\n'+conflict);}
  if(/分からない|わからない/.test(v)){addMsg('nexa','了解。分からないものは分からないでOK。事実・推測・意見を分け、必要なら「今は決めない」を選択肢にする。');return}
  if(/最優先|急ぎ|今すぐ|至急|重要|先に|優先/.test(v)&&!decisionWords(v)){recordPriority(v);return}
  if(/迷|悩|どうする|どっち|選択/.test(v)){
