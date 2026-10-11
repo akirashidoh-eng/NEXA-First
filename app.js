@@ -48,7 +48,17 @@ function contradiction(v){
 }
 function decisionWords(v){return /決めた|決定|選ぶ|選んだ|これでいく|これで行く|①|②|③|やる|やめる|進める|採用|却下/.test(v)}
 function analyze(v){
- const prev=data.lastChoice;
+ const stopPhrase = /^(?:今日はここまで作業し、続きは明日確認する|今日はここまで[。.!！]\s*続きは明日確認する|今日はここまで(?:にする)?|今日は(?:もう)?作業を終了する|本日の作業は終了(?:する)?|今日はここまで[。.!！]\s*明日は続きから)[。.!！\s]*$/.test(v);
+ const uncertain = /迷っている|迷う|どうしよう|検討中|かもしれない|まだ決めていない|決めかねる/.test(v);
+ if(stopPhrase && !uncertain){
+  data.notes=data.notes||[];
+  data.notes.push({text:'作業終了報告：'+v,time:now()});
+  persist();
+  $('notes').innerHTML=listHtml(data.notes.slice(-8),'作業メモはありません。');
+  addMsg('nexa','了解。今日はここまでにしよう。作業終了の報告を作業メモに保存した。現在地と次の一手は自動変更していないよ。お疲れさま！');
+  return;
+ }
+  const prev=data.lastChoice;
  const conflict=contradiction(v);if(conflict){addMsg('nexa','⚠️ 矛盾候補を検知。\n'+conflict);}
  if(/分からない|わからない/.test(v)){addMsg('nexa','了解。分からないものは分からないでOK。事実・推測・意見を分け、必要なら「今は決めない」を選択肢にする。');return}
  if(/最優先|急ぎ|今すぐ|至急|重要|先に|優先/.test(v)&&!decisionWords(v)){recordPriority(v);return}
