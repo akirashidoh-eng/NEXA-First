@@ -47,19 +47,15 @@ function contradiction(v){
  return null;
 }
 function decisionWords(v){return /決めた|決定|選ぶ|選んだ|これでいく|これで行く|①|②|③|やる|やめる|進める|採用|却下/.test(v)}
-
 let stateCandidate = null;
-
 function showStateCandidate(type, text) {
   stateCandidate = { type, text };
   $('candidateText').textContent =
     (type === 'state' ? '現在の状況' : '次にやること') + '：' + text;
   $('updateCandidate').hidden = false;
 }
-
 function acceptStateCandidate() {
   if (!stateCandidate) return;
-
   if (stateCandidate.type === 'state') {
     data.state = stateCandidate.text;
     $('state').value = stateCandidate.text;
@@ -69,28 +65,53 @@ function acceptStateCandidate() {
   } else {
     return;
   }
-
   persist();
   $('updateCandidate').hidden = true;
   const label = stateCandidate.type === 'state'
     ? '現在の状況'
     : '次にやること';
   stateCandidate = null;
-
   addMsg('nexa', label + 'を更新して保存した。');
 }
-
 function dismissStateCandidate() {
   stateCandidate = null;
   $('updateCandidate').hidden = true;
   addMsg('nexa', '更新候補を見送った。保存状態は変更していないよ。');
 }
+function buildContextReply(v) {
+  const text = v.trim().slice(0, 100);
+  const goal = (data.goal || "").trim();
+  const state = (data.state || "").trim();
+  const next = (data.next || "").trim();
+  let reply;
+  if (/なぜ|どうして|理由/.test(text)) {
+    reply = `その理由を整理しよう。まず、確認できている事実と推測を分けて考えるね。`;
+  } else if (/教えて|知りたい|説明/.test(text)) {
+    reply = `知りたいことを一つずつ整理しよう。分からない点は、無理に断定しないよ。`;
+  } else if (/困|問題|エラー|動かない|失敗/.test(text)) {
+    reply = `問題を切り分けよう。今分かっていることと、まだ確認できていないことを分けて考えるね。`;
+  } else {
+    reply = `今の入力は「${text}」だね。`;
+  }
+  const context = [];
+  if (goal) context.push(`目的は「${goal}」`);
+  if (state) context.push(`現在地は「${state}」`);
+  if (next) context.push(`次の一手は「${next}」`);
 
+  if (context.length) {
+    reply += `\n\n記録を確認すると、${context.join("、")}。`;
+  } else {
+    reply += `\n\n目的・現在地・次の一手の記録を確認しながら進めよう。`;
+  }
+  if (data.unresolved.length > 0) {
+    reply += `\n未解決事項が${data.unresolved.length}件あるよ。必要なら、そこから確認しよう。`;
+  }
+  reply += `\n\n入力の意図を取り違えていたら、修正するよ。`;
+  return reply;
+}
 function analyze(v){
  const stopPhrase = /^(?:今日はここまで(?:作業し、続きは明日確認する|[。.!！]\s*(?:続きは明日確認する|明日は続きから|明日また続けよう)|にする|です?|にします)?|今日は(?:もう)?作業を終了(?:する|します)?|今日は終了(?:です|します)?(?:[。.!！]\s*また明日)?|本日の作業は(?:終了(?:する|です|します)?|ここまで(?:です|にします)?)|今日はここまで[。.!！]\s*明日は続きから)[。.!！\s]*$/.test(v);
  const uncertain = /迷っている|迷う|どうしよう|検討中|かもしれない|まだ決めていない|決めかねる/.test(v);
-
- 
  if(stopPhrase && !uncertain){
   data.notes=data.notes||[];
   data.notes.push({text:'作業終了報告：'+v,time:now()});
@@ -119,11 +140,9 @@ function analyze(v){
  if(/前提|条件/.test(v)){data.assumptions.push({text:v,time:now()});persist();addMsg('nexa','前提条件として記録した。今後この条件と矛盾する案が出たら、NEXAが止めて確認する。');render();return}
  if(/保留|後で|2号機|初号機には入れない|不要/.test(v)){data.doNot.push({text:v,time:now()});persist();addMsg('nexa','今は保留・非実装候補として記録した。初号機を膨らませすぎない。');render();return}
  if(/未解決|決まってない|まだ決めてない/.test(v)){data.unresolved.push({text:v,time:now()});persist();addMsg('nexa','未解決事項として記録した。次回再開時にも確認できる。');render();return}
-
  const nextMatch = v.match(
   /^(?:次は|次の一手は|次の一手[：:])[ ]*(.{2,100})[。.!！]*$/
  );
-
  if (nextMatch && !uncertain) {
   showStateCandidate('next', nextMatch[1].trim());
   addMsg('nexa',
@@ -131,11 +150,9 @@ function analyze(v){
   );
   return;
  }
-
  const progressMatch = v.match(
   /^(?:確認できた|確認済み|テストに成功|動作確認に成功|実装できた|追加できた|修正できた|コミットした|デプロイ成功)[：:、 ]*(.{2,100})[。.!！]*$/
  );
-
  if (progressMatch && !uncertain) {
   showStateCandidate('state', progressMatch[0]);
   addMsg('nexa',
@@ -143,7 +160,7 @@ function analyze(v){
   );
   return;
  }
- addMsg('nexa','受け取った。目的→現在地→次の一手を軸に、優先順位・前提との矛盾・判断変更・未解決事項・保留事項を見て、必要な時だけ介入する。事実／推測／意見も分けて扱う。\n\n※初号機では自然言語理解に限界があるため、曖昧な内容は断定しない。');
-}
+ addMsg('nexa', buildContextReply(v));
+ }
 function send(){const v=$('message').value.trim();if(!v)return;addMsg('user',v);$('message').value='';analyze(v)}
 render();
