@@ -2,6 +2,14 @@
 :root{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;color:#111827;background:#f3f4f6}*{box-sizing:border-box}body{margin:0}.app{max-width:760px;margin:auto;min-height:100vh;background:#fff}header{padding:18px;background:#111827;color:#fff;position:sticky;top:0;z-index:2}h1{font-size:22px;margin:0 0 4px}.sub{opacity:.75;font-size:12px}main{padding:16px}.card{border:1px solid #e5e7eb;border-radius:16px;padding:14px;margin-bottom:12px}label{font-size:12px;color:#6b7280;display:block;margin-bottom:6px}input,textarea,button{font:inherit}input,textarea{width:100%;border:1px solid #d1d5db;border-radius:10px;padding:10px;background:#fff}textarea{min-height:84px;resize:vertical}.row{display:flex;gap:8px;flex-wrap:wrap}button{border:0;border-radius:10px;padding:10px 14px;background:#111827;color:#fff;cursor:pointer}button.secondary{background:#e5e7eb;color:#111827}button.warn{background:#b91c1c}.chat{display:flex;flex-direction:column;gap:8px;max-height:360px;overflow:auto}.msg{padding:10px 12px;border-radius:12px;white-space:pre-wrap}.user{background:#e5e7eb;align-self:flex-end}.nexa{background:#eef2ff;align-self:flex-start}.small{font-size:12px;color:#6b7280}.item{margin:7px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.mini{border:1px solid #e5e7eb;border-radius:12px;padding:12px}@media(max-width:560px){.grid{grid-template-columns:1fr}}details summary{cursor:pointer;font-weight:600}.danger{margin-top:8px}
 </style></head><body><div class="app"><header><h1>NEXA 初号機</h1><div class="sub">軍師秘書｜AKIRAに合わせる。でも、忖度はしない。</div></header><main>
 <section class="card"><label>現在の目的</label><input id="goal" placeholder="例：NEXA初号機の基本型を完成させる"><label style="margin-top:10px">現在の状況</label><textarea id="state" placeholder="今どうなっている？"></textarea><label style="margin-top:10px">次にやること</label><input id="next" placeholder="例：動作確認をする"><div class="row" style="margin-top:10px"><button onclick="saveState()">状態を保存</button><button class="secondary" onclick="restart()">前回状態を確認</button><button class="warn" onclick="clearAll()">保存状態を消去</button></div></section>
+  <section class="card" id="updateCandidate" hidden>
+  <label>状態更新候補</label>
+  <div id="candidateText" class="small"></div>
+  <div class="row" style="margin-top:10px">
+    <button onclick="acceptStateCandidate()">候補を反映</button>
+    <button class="secondary" onclick="dismissStateCandidate()">見送る</button>
+  </div>
+</section>
 <section class="card"><div id="restartBox" class="small">「前回状態を確認」で再開サマリーを表示します。</div></section>
 <section class="card"><div class="chat" id="chat"></div><div class="row" style="margin-top:10px"><input id="message" placeholder="AKIRAの考え・判断・相談を入力" onkeydown="if(event.key==='Enter')send()"><button onclick="send()">送信</button></div></section>
 <section class="card">
