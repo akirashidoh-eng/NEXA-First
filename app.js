@@ -119,6 +119,19 @@ function analyze(v){
  if(/前提|条件/.test(v)){data.assumptions.push({text:v,time:now()});persist();addMsg('nexa','前提条件として記録した。今後この条件と矛盾する案が出たら、NEXAが止めて確認する。');render();return}
  if(/保留|後で|2号機|初号機には入れない|不要/.test(v)){data.doNot.push({text:v,time:now()});persist();addMsg('nexa','今は保留・非実装候補として記録した。初号機を膨らませすぎない。');render();return}
  if(/未解決|決まってない|まだ決めてない/.test(v)){data.unresolved.push({text:v,time:now()});persist();addMsg('nexa','未解決事項として記録した。次回再開時にも確認できる。');render();return}
+
+ const nextMatch = v.match(
+  /^(?:次は|次の一手は|次の一手[：:])[ ]*(.{2,100})[。.!！]*$/
+ );
+
+ if (nextMatch && !uncertain) {
+  showStateCandidate('next', nextMatch[1].trim());
+  addMsg('nexa',
+   '次の作業を検出したよ。次にやることの更新候補を表示した。内容を確認して、反映するか見送るか選んでね。'
+  );
+  return;
+ }
+
  const progressMatch = v.match(
   /^(?:確認できた|確認済み|テストに成功|動作確認に成功|実装できた|追加できた|修正できた|コミットした|デプロイ成功)[：:、 ]*(.{2,100})[。.!！]*$/
  );
