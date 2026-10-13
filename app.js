@@ -226,13 +226,25 @@ function handleSelfReview(v) {
       }
     }
   }
-
   let cause = '';
   let proposal = '';
-
+  const stateMatch = previousReply.match(/【現在地】([^\n]*)/);
+  const nextMatch = previousReply.match(/【次の一手】([^\n]*)/);
+  const normalize = s => String(s || '')
+    .replace(/^テストに成功[：:]\s*/, '')
+    .replace(/[。.!！\s]/g, '')
+    .trim();
   if (!previousQuestion || !previousReply) {
     cause = '直前の質問または回答を特定できない';
-    proposal = '質問と回答を確認してから、指摘内容を再分析する';
+    proposal = '質問と回答の記録を確認し、取得できない情報を特定する';
+  } else if (
+    stateMatch &&
+    nextMatch &&
+    normalize(stateMatch[1]) !== '' &&
+    normalize(stateMatch[1]) === normalize(nextMatch[1])
+  ) {
+    cause = '現在地と次の一手が同じ内容になっている';
+    proposal = '完了済みの作業と未完了の作業を区別し、次に行う具体的な作業を示す';
   } else if (
     /という入力を受け取った|内容を整理するね|必要な情報を確認しながら/.test(previousReply)
   ) {
@@ -242,10 +254,9 @@ function handleSelfReview(v) {
     cause = '回答が短く、必要な説明が不足した可能性';
     proposal = '質問で求められた情報が含まれているか確認し、不足分を補う';
   } else {
-    cause = '指摘だけでは原因を確定できない';
-    proposal = '質問の要求と回答を照合し、答えていない点を特定する';
+    cause = '回答内容と質問の要求を照合する必要がある';
+    proposal = '質問で求められた情報と実際の回答を比較し、不足している内容を特定する';
   }
-
   data.selfReviews.push({
     feedback: v,
     previousQuestion: previousQuestion,
