@@ -175,54 +175,106 @@ function handleSelfReview(v) {
     const list = (data.selfReviews || []).slice(-5);
 
     if (!list.length) {
-      addMsg('nexa', '自己点検記録はまだないよ。回答が的外れなときは、具体的に指摘してね。');
+      addMsg('nexa', '自己点検記録はまだないよ。');
     } else {
-      addMsg(
-        'nexa',
-        '直近の自己点検記録：\n' +
-          list.map((x, i) =>
-            (i + 1) + '. ' + x.feedback +
-            '\n   状態：' + x.status + '｜' + x.time
-          ).join('\n')
-      );
-    }
+      const report = list.map((x, i) =>
+        (i + 1) + '. 指摘：' + x.feedback +
+        '\n   質問：' + (x.previousQuestion || '記録なし') +
+        '\n   原因候補：' + (x.cause || '未分析') +
+        '\n   改善案：' + (x.proposal || '未作成') +
+        '\n   状態：' + x.status + '｜' + x.time
+      ).join('\n\n');
 
+      addMsg('nexa', '直近の自己点検記録：\n' + report);
+    }
     return true;
   }
 
-  if (feedback) {
-    data.selfReviews = Array.isArray(data.selfReviews)
-      ? data.selfReviews
-      : [];
+  if (!feedback) return false;
 
-    const previous = [...data.messages]
-      .reverse()
-      .find(m => m.role === 'nexa');
+  data.selfReviews = Array.isArray(data.selfReviews)
+    ? data.selfReviews
+    : [];
 
-    data.selfReviews.push({
-      feedback: v,
-      previousReply: previous ? previous.text : '',
-      proposal: '直前の回答と指摘を照合し、原因と改善方法を検討する',
-      status: '未分析',
-      time: now()
-    });
+  const messages = data.messages || [];
+  let feedbackIndex = -1;
 
-    if (data.selfReviews.length > 50) {
-      data.selfReviews = data.selfReviews.slice(-50);
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'user' && messages[i].text === v) {
+      feedbackIndex = i;
+      break;
     }
-
-    persist();
-
-    addMsg(
-      'nexa',
-      '指摘を自己点検記録に保存したよ。原因分析や修正テストはまだ実施していない。'
-    );
-
-    return true;
   }
 
-  return false;
+  let previousReply = '';
+  let previousQuestion = '';
+  let replyIndex = -1;
+
+  for (let i = feedbackIndex - 1; i >= 0; i--) {
+    if (messages[i].role === 'nexa') {
+      previousReply = messages[i].text || '';
+      replyIndex = i;
+      break;
+    }
+  }
+
+  if (replyIndex >= 0) {
+    for (let i = replyIndex - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        previousQuestion = messages[i].text || '';
+        break;
+      }
+    }
+  }
+
+  let cause = '';
+  let proposal = '';
+
+  if (!previousQuestion || !previousReply) {
+    cause = '直前の質問または回答を特定できない';
+    proposal = '質問と回答を確認してから、指摘内容を再分析する';
+  } else if (
+    /という入力を受け取った|内容を整理するね|必要な情報を確認しながら/.test(previousReply)
+  ) {
+    cause = '定型的な返答になり、質問への直接的な回答が不足した可能性';
+    proposal = '質問の要求を特定し、最初に結論を答えてから理由を説明する';
+  } else if (previousReply.length < 25) {
+    cause = '回答が短く、必要な説明が不足した可能性';
+    proposal = '質問で求められた情報が含まれているか確認し、不足分を補う';
+  } else {
+    cause = '指摘だけでは原因を確定できない';
+    proposal = '質問の要求と回答を照合し、答えていない点を特定する';
+  }
+
+  data.selfReviews.push({
+    feedback: v,
+    previousQuestion: previousQuestion,
+    previousReply: previousReply,
+    cause: cause,
+    proposal: proposal,
+    status: '原因候補を分析済み・改善未検証',
+    time: now()
+  });
+
+  if (data.selfReviews.length > 50) {
+    data.selfReviews = data.selfReviews.slice(-50);
+  }
+
+  persist();
+
+  addMsg(
+    'nexa',
+    '自己点検を行ったよ。' +
+    '\n直前の質問：' + (previousQuestion || '特定できず') +
+    '\n原因候補：' + cause +
+    '\n改善案：' + proposal +
+    '\n状態：原因候補を分析済み・改善未検証' +
+    '\n\nこれはルールに基づく分析だよ。コードの修正や動作テストはまだ行っていない。'
+  );
+
+  return true;
 }
+
 function analyze(v){
  
  if (handleSelfReview(v)) return;
