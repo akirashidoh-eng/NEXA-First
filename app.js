@@ -2,7 +2,8 @@ const KEY="nexa_first_state_v3";
 const OLD_KEY="nexa_first_state_v2";
 const $=id=>document.getElementById(id);
 const now=()=>new Date().toLocaleString("ja-JP");
-const base={goal:"",state:"",next:"",assumptions:[],decisions:[],lastChoice:null,messages:[],unresolved:[],doNot:[],recommendations:[],priorities:[],notes:[]};
+
+const base={goal:"",state:"",next:"",assumptions:[],decisions:[],lastChoice:null,messages:[],unresolved:[],doNot:[],recommendations:[],priorities:[],notes:[],selfReviews:[]};
 function load(){try{const current=JSON.parse(localStorage.getItem(KEY)||"null");if(current)return {...base,...current};const old=JSON.parse(localStorage.getItem(OLD_KEY)||"null");if(old){const migrated={...base,...old,priorities:old.priorities||[]};localStorage.setItem(KEY,JSON.stringify(migrated));return migrated}return {...base}}catch{return {...base}}}
 let data=load();
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
@@ -166,8 +167,66 @@ function buildContextReply(v) {
 
   return reply;
 }
+function handleSelfReview(v) {
+  const command = /自己点検|改善記録|自己改善状況/.test(v);
+  const feedback = /答えになってない|的外れ|話が違う|そうじゃない|期待と違う|不自然な回答|改善してほしい|回答が違う|意図と違う/.test(v);
 
+  if (command && !feedback) {
+    const list = (data.selfReviews || []).slice(-5);
+
+    if (!list.length) {
+      addMsg('nexa', '自己点検記録はまだないよ。回答が的外れなときは、具体的に指摘してね。');
+    } else {
+      addMsg(
+        'nexa',
+        '直近の自己点検記録：\n' +
+          list.map((x, i) =>
+            (i + 1) + '. ' + x.feedback +
+            '\n   状態：' + x.status + '｜' + x.time
+          ).join('\n')
+      );
+    }
+
+    return true;
+  }
+
+  if (feedback) {
+    data.selfReviews = Array.isArray(data.selfReviews)
+      ? data.selfReviews
+      : [];
+
+    const previous = [...data.messages]
+      .reverse()
+      .find(m => m.role === 'nexa');
+
+    data.selfReviews.push({
+      feedback: v,
+      previousReply: previous ? previous.text : '',
+      proposal: '直前の回答と指摘を照合し、原因と改善方法を検討する',
+      status: '未分析',
+      time: now()
+    });
+
+    if (data.selfReviews.length > 50) {
+      data.selfReviews = data.selfReviews.slice(-50);
+    }
+
+    persist();
+
+    addMsg(
+      'nexa',
+      '指摘を自己点検記録に保存したよ。原因分析や修正テストはまだ実施していない。'
+    );
+
+    return true;
+  }
+
+  return false;
+}
 function analyze(v){
+ 
+ if (handleSelfReview(v)) return;
+
  const stopPhrase = /^(?:今日はここまで(?:作業し、続きは明日確認する|[。.!！]\s*(?:続きは明日確認する|明日は続きから|明日また続けよう)|にする|です?|にします)?|今日は(?:もう)?作業を終了(?:する|します)?|今日は終了(?:です|します)?(?:[。.!！]\s*また明日)?|本日の作業は(?:終了(?:する|です|します)?|ここまで(?:です|にします)?)|今日はここまで[。.!！]\s*明日は続きから)[。.!！\s]*$/.test(v);
  const uncertain = /迷っている|迷う|どうしよう|検討中|かもしれない|まだ決めていない|決めかねる/.test(v);
 
