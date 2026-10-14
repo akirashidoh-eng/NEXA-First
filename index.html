@@ -12,6 +12,16 @@
 </section>
 <section class="card"><div id="restartBox" class="small">「前回状態を確認」で再開サマリーを表示します。</div></section>
 <section class="card"><div class="chat" id="chat"></div><div class="row" style="margin-top:10px"><input id="message" placeholder="AKIRAの考え・判断・相談を入力" onkeydown="if(event.key==='Enter')send()"><button onclick="send()">送信</button></div></section>
+ <section class="card">
+  <label>作業タスク管理</label>
+  <div class="small">完了・未完了を区別して、次の作業を管理します。</div>
+  <input id="taskInput" placeholder="次に管理したい作業を入力">
+  <div class="row" style="margin-top:10px">
+    <button onclick="addTask()">タスクを追加</button>
+  </div>
+  <div id="taskSummary" class="small" style="margin-top:12px"></div>
+  <div id="taskList" style="margin-top:10px"></div>
+</section>
 <section class="card">
   <label>作業メモ</label>
   <textarea id="noteInput" placeholder="作業内容・気づき・次回への引き継ぎ"></textarea>
