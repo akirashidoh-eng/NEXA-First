@@ -384,6 +384,7 @@ function dismissStateCandidate() {
 }
 
 /* 自由質問へのルールベース回答 */
+
 function buildContextReply(v) {
   const text = String(v || "").trim();
   const goal = data.goal || "未設定";
@@ -396,6 +397,13 @@ function buildContextReply(v) {
     return /おはよう/.test(text) ? "おはよう！今日は何から始めようか？"
       : /こんばんは/.test(text) ? "こんばんは！今日は何を進めようか？"
       : "了解！何を手伝おうか？";
+  }
+
+  // タスクに関する質問を先に判定する
+  if (/タスク|作業/.test(text) && /何|残|未完了|次|一覧|状況|進捗|確認/.test(text)) {
+    return pending.length
+      ? "未完了タスク：\n" + pending.map((t, i) => `${i + 1}. ${t.text}`).join("\n")
+      : "未完了タスクはないよ。次にやることを決めてタスクに追加しよう。";
   }
 
   if (/どこまで|進捗|進んだ|現状|現在地|今の状態|次に何|次は何|次の一手/.test(text)) {
@@ -442,18 +450,13 @@ function buildContextReply(v) {
     return `質問への回答：${text}\n\n保存された記録だけでは具体的な答えを確定できない場合がある。対象や条件が明確なら、そこに絞って説明するよ。`;
   }
 
-  if (/タスク|作業/.test(text) && /何|残|未完了|次/.test(text)) {
-    return pending.length
-      ? "未完了タスク：\n" + pending.map((t, i) => `${i + 1}. ${t.text}`).join("\n")
-      : "未完了タスクはないよ。次にやることを決めてタスクに追加しよう。";
-  }
-
   reply = `入力を確認したよ：「${text}」`;
   reply += `\n\n現在の目的は「${goal}」。`;
   if (data.tasks.length) reply += `未完了タスクは${pending.length}件。`;
   reply += "\nこの内容をどう扱うか、提案・説明・判断・記録のどれを求めているかが分かれば、より直接的に答えられるよ。";
   return reply;
 }
+
 
 function handleSelfReview(v) {
   if (!/自己点検|改善記録|自己改善状況|答えになってない|的外れ|話が違う|そうじゃない|期待と違う|改善してほしい|意図と違う/.test(v)) return false;
