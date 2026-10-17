@@ -1,16 +1,19 @@
-
 const KEY = "nexa_first_state_v3";
 const OLD_KEY = "nexa_first_state_v2";
 const $ = id => document.getElementById(id);
 const now = () => new Date().toLocaleString("ja-JP");
 
-const base = {
-  goal: "", state: "", next: "",
-  assumptions: [], decisions: [], lastChoice: null,
-  messages: [], unresolved: [], doNot: [],
-  recommendations: [], priorities: [], notes: [],
-  selfReviews: [], tasks: []
-};
+function createEmptyState() {
+  return {
+    goal: "", state: "", next: "",
+    assumptions: [], decisions: [], lastChoice: null,
+    messages: [], unresolved: [], doNot: [],
+    recommendations: [], priorities: [], notes: [],
+    selfReviews: [], tasks: []
+  };
+}
+
+const base = createEmptyState();
 
 function load() {
   try {
@@ -31,7 +34,7 @@ function load() {
       tasks: saved.tasks || []
     };
   } catch {
-    return { ...base };
+    return createEmptyState();
   }
 }
 
@@ -135,7 +138,7 @@ function clearAll() {
   try {
     localStorage.removeItem(KEY);
     localStorage.removeItem(OLD_KEY);
-    data = { ...base, tasks: [], messages: [] };
+    data = createEmptyState();
     stateCandidate = null;
     $("updateCandidate").hidden = true;
     $("restartBox").textContent = "保存状態を消去しました。";
