@@ -252,6 +252,16 @@ function decisionWords(v) {
   return /決めた|決定|選ぶ|選んだ|これでいく|これで行く|①|②|③|採用|却下/.test(v);
 }
 
+function extractDecisionReason(v) {
+  const match = String(v || "").match(
+    /(?:理由|根拠)\s*[：:]\s*([\s\S]+)/
+  );
+
+  return match
+    ? match[1].trim()
+    : "理由未記録（後で確認）";
+}
+
 
 function showStateCandidate(type, text) {
   stateCandidate = { type, text };
@@ -482,14 +492,36 @@ function analyze(v) {
     return;
   }
 
-  if (decisionWords(v)) {
-    data.lastChoice = { text: v, time: now() };
-    data.decisions.push({ choice: v, reason: "必要時に確認", confidence: confidence(v), time: now() });
-    persist();
+  
+if (decisionWords(v)) {
+  const reason = extractDecisionReason(v);
+  const level = confidence(v);
+
+  data.lastChoice = {
+    text: v,
+    reason,
+    confidence: level,
+    time: now()
+  };
+
+  data.decisions.push({
+    choice: v,
+    reason,
+    confidence: level,
+    time: now()
+  });
+
+  if (persist()) {
     render();
-    addMsg("nexa", `判断として記録した。確信度は「${confidence(v)}」。`);
-    return;
+    addMsg(
+      "nexa",
+      `判断を記録した。\n理由：${reason}\n確信度：${level}`
+    );
   }
+
+  return;
+}
+
 
   if (/前提|条件/.test(v)) {
     data.assumptions.push({ text: v, time: now() });
