@@ -173,11 +173,31 @@ function addTask() {
   }
 }
 
+
 function toggleTask(id) {
   const task = data.tasks.find(t => String(t.id) === String(id));
   if (!task) return;
+
   task.done = !task.done;
-  if (persist()) renderTasks();
+
+  if (persist()) {
+    renderTasks();
+
+    const total = data.tasks.length;
+    const done = data.tasks.filter(t => t.done).length;
+    const pending = data.tasks.filter(t => !t.done);
+    const status = task.done ? "完了" : "未完了";
+
+    const stateText =
+      `タスク進捗：全${total}件中${done}件完了、未完了${pending.length}件。` +
+      `「${task.text}」を${status}に変更した。`;
+
+    const nextText = pending.length
+      ? `次は未完了タスク「${pending[0].text}」に取り組む。`
+      : "未完了タスクはありません。次の作業を決めてタスクに追加する。";
+
+    showTaskStateCandidate(stateText, nextText);
+  }
 }
 
 function deleteTask(id) {
@@ -232,6 +252,7 @@ function decisionWords(v) {
   return /決めた|決定|選ぶ|選んだ|これでいく|これで行く|①|②|③|採用|却下/.test(v);
 }
 
+
 function showStateCandidate(type, text) {
   stateCandidate = { type, text };
   $("candidateText").textContent =
@@ -239,15 +260,36 @@ function showStateCandidate(type, text) {
   $("updateCandidate").hidden = false;
 }
 
+function showTaskStateCandidate(stateText, nextText) {
+  stateCandidate = {
+    type: "both",
+    stateText,
+    nextText
+  };
+
+  $("candidateText").textContent =
+    "現在地：" + stateText + "\n" +
+    "次の一手：" + nextText;
+
+  $("updateCandidate").hidden = false;
+}
+
 function acceptStateCandidate() {
   if (!stateCandidate) return;
-  if (stateCandidate.type === "state") {
+
+  if (stateCandidate.type === "both") {
+    data.state = stateCandidate.stateText;
+    data.next = stateCandidate.nextText;
+    $("state").value = stateCandidate.stateText;
+    $("next").value = stateCandidate.nextText;
+  } else if (stateCandidate.type === "state") {
     data.state = stateCandidate.text;
     $("state").value = stateCandidate.text;
   } else {
     data.next = stateCandidate.text;
     $("next").value = stateCandidate.text;
   }
+
   if (persist()) {
     $("updateCandidate").hidden = true;
     addMsg("nexa", "状態更新候補を反映して保存した。");
