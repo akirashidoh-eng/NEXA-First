@@ -232,21 +232,48 @@ function priority(v) {
   return "低";
 }
 
+
 function contradiction(v) {
-  const a = data.assumptions.map(x => x.text || "").join(" ");
+  const assumptions = data.assumptions
+    .map(x => String(x.text || ""))
+    .filter(Boolean);
+
   const checks = [
-    [/無料|無課金|課金しない/, /有料|課金|有料API/,
-      "無料という前提と今回の案が衝突する可能性がある"],
-    [/iPhone|iOS|スマホ/, /Mac|macOS|Xcode/,
-      "iPhone中心という前提を確認したい"],
-    [/初号機|基本型|シンプル/, /全部入れ|大規模|機能追加/,
-      "初号機はシンプルにする方針を確認したい"]
+    {
+      assumption: /無料|無課金|課金しない/,
+      proposal: /有料|課金|有料API/,
+      label: "費用方針"
+    },
+    {
+      assumption: /iPhone|iOS|スマホ/,
+      proposal: /Mac|macOS|Xcode/,
+      label: "開発環境の方針"
+    },
+    {
+      assumption: /初号機|基本型|シンプル/,
+      proposal: /全部入れ|大規模|機能追加/,
+      label: "初号機の規模に関する方針"
+    }
   ];
-  for (const [yes, no, msg] of checks) {
-    if (yes.test(a) && no.test(v)) return msg + "。前提を変えるか確認しよう。";
+
+  for (const assumption of assumptions) {
+    for (const check of checks) {
+      if (check.assumption.test(assumption) &&
+          check.proposal.test(v)) {
+        return (
+          "保存済みの前提：「" + assumption + "」\n" +
+          "今回の提案：「" + v + "」\n" +
+          "この2つは「" + check.label +
+          "」で食い違う可能性がある。\n" +
+          "前提を維持するか、変更するか確認しよう。"
+        );
+      }
+    }
   }
+
   return null;
 }
+
 
 function decisionWords(v) {
   return /決めた|決定|選ぶ|選んだ|これでいく|これで行く|①|②|③|採用|却下/.test(v);
@@ -416,8 +443,14 @@ function handleSelfReview(v) {
 function analyze(v) {
   if (handleSelfReview(v)) return;
 
-  const conflict = contradiction(v);
-  if (conflict) addMsg("nexa", "⚠️ 前提確認：" + conflict);
+  
+const conflict = contradiction(v);
+
+if (conflict) {
+  addMsg("nexa", "⚠️ 前提確認\n" + conflict);
+  return;
+}
+
 
   if (/^(?:次は|次の一手は|次の一手[：:])\s*(.{2,100})[。.!！]*$/.test(v)) {
     showStateCandidate("next", v.match(/^(?:次は|次の一手は|次の一手[：:])\s*(.{2,100})[。.!！]*$/)[1].trim());
