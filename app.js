@@ -398,7 +398,10 @@ function acceptStateCandidate() {
 function dismissStateCandidate() {
   stateCandidate = null;
   $("updateCandidate").hidden = true;
-  addMsg("nexa", "更新候補を見送った。保存状態は変更していないよ。");
+  addMsg(
+    "nexa",
+    "更新候補を見送った。現在地・次の一手は変更していないよ。この案内メッセージはチャット履歴に保存したよ。"
+  );
 }
 
 /* 自由質問へのルールベース回答 */
