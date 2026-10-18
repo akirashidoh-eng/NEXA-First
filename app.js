@@ -333,9 +333,11 @@ function decisionWords(v) {
   return /決めた|決定|選ぶ|選んだ|これでいく|これで行く|①|②|③|採用|却下/.test(v);
 }
 
+
 function extractDecisionReason(v) {
-  const match = String(v || "").match(
-    /(?:理由|根拠)\s*[：:]\s*([\s\S]+)/
+  const text = String(v || "");
+  const match = text.match(
+    /(?:理由|根拠)\s*[：:]\s*([\s\S]*?)(?=\s*確信度\s*[：:]|$)/
   );
 
   return match
