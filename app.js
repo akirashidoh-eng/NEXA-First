@@ -168,7 +168,7 @@ function saveNote() {
 /* タスク管理 */
 
  // タスク変更後、現在地・次の一手を自動更新して保存する
-function showTaskStateAfterChange(changeText) {
+function showTaskStateAfterChange(changeText, preferredTaskId = null) {
   const total = data.tasks.length;
   const done = data.tasks.filter(t => t.done).length;
   const pending = data.tasks.filter(t => !t.done);
@@ -177,22 +177,24 @@ function showTaskStateAfterChange(changeText) {
     `タスク進捗：全${total}件中${done}件完了、未完了${pending.length}件。` +
     changeText;
 
-  data.next = pending.length
-    ? `次は未完了タスク「${pending[0].text}」に取り組む。`
+  const nextTask =
+    pending.find(t => String(t.id) === String(preferredTaskId)) ||
+    pending[0];
+
+  data.next = nextTask
+    ? `次は未完了タスク「${nextTask.text}」に取り組む。`
     : "未完了タスクはありません。次の作業を決めてタスクに追加する。";
 
-  // 画面表示も更新する
-  $("state").value = data.state;
-  $("next").value = data.next;
-
-  // 古い更新候補を無効にする
   stateCandidate = null;
   $("updateCandidate").hidden = true;
 
-  // 同期した現在地・次の一手を保存する
-  persist();
-}
+  if (!persist()) return false;
 
+  $("state").value = data.state;
+  $("next").value = data.next;
+
+  return true;
+}
 
 function addTask() {
   const input = $("taskInput");
@@ -214,8 +216,9 @@ function addTask() {
     renderTasks();
 
     showTaskStateAfterChange(
-      `「${text}」を追加した。`
-    );
+  `「${text}」を追加した。`,
+  data.tasks[data.tasks.length - 1].id
+);
 
     addMsg("nexa", "タスクを追加した：" + text);
   }
