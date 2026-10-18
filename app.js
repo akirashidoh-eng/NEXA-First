@@ -263,11 +263,22 @@ function renderTasks() {
   ).join("") : "タスクはありません。";
 }
 
+
 function confidence(v) {
-  if (/確実|確定|間違いない/.test(v)) return "高";
-  if (/たぶん|おそらく|可能性|推測/.test(v)) return "中";
+  const text = String(v || "");
+
+  const explicit = text.match(
+    /確信度\s*[：:]\s*(高|中|低|未評価)/
+  );
+
+  if (explicit) return explicit[1];
+
+  if (/確実|確定|間違いない/.test(text)) return "高";
+  if (/たぶん|おそらく|可能性|推測/.test(text)) return "中";
+
   return "未評価";
 }
+
 
 function priority(v) {
   if (/最優先|急ぎ|今すぐ|至急/.test(v)) return "高";
