@@ -167,8 +167,6 @@ function saveNote() {
 
 /* タスク管理 */
 
-// タスク変更後の現在地・次の一手の更新候補を作る
-
  // タスク変更後、現在地・次の一手を自動更新して保存する
 function showTaskStateAfterChange(changeText) {
   const total = data.tasks.length;
