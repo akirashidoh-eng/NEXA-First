@@ -396,11 +396,21 @@ function acceptStateCandidate() {
 }
 
 function dismissStateCandidate() {
+  if (!stateCandidate) return;
+
   stateCandidate = null;
   $("updateCandidate").hidden = true;
+
+  const pending = data.tasks.filter(t => !t.done);
+  const total = data.tasks.length;
+  const done = data.tasks.filter(t => t.done).length;
+
   addMsg(
     "nexa",
-    "更新候補を見送った。現在地・次の一手は変更していないよ。この案内メッセージはチャット履歴に保存したよ。"
+    "更新候補を見送った。現在地・次の一手は変更していないよ。" +
+    `\n現在のタスク進捗：全${total}件中${done}件完了、未完了${pending.length}件。` +
+    "\nタスク一覧と現在地・次の一手が一致しているか、必要に応じて確認してね。" +
+    "この案内メッセージはチャット履歴に保存したよ。"
   );
 }
 
