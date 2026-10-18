@@ -167,6 +167,7 @@ function saveNote() {
 
 /* タスク管理 */
 
+
  // タスク変更後、現在地・次の一手を自動更新して保存する
 function showTaskStateAfterChange(changeText, preferredTaskId = null) {
   const total = data.tasks.length;
@@ -177,9 +178,11 @@ function showTaskStateAfterChange(changeText, preferredTaskId = null) {
     `タスク進捗：全${total}件中${done}件完了、未完了${pending.length}件。` +
     changeText;
 
-  const nextTask =
-    pending.find(t => String(t.id) === String(preferredTaskId)) ||
-    pending[0];
+  const preferredTask = pending.find(
+    t => String(t.id) === String(preferredTaskId)
+  );
+
+  const nextTask = preferredTask || pending[0];
 
   data.next = nextTask
     ? `次は未完了タスク「${nextTask.text}」に取り組む。`
@@ -195,7 +198,6 @@ function showTaskStateAfterChange(changeText, preferredTaskId = null) {
 
   return true;
 }
-
 function addTask() {
   const input = $("taskInput");
   const text = input.value.trim();
