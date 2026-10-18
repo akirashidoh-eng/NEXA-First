@@ -90,7 +90,12 @@ function render() {
   $("chat").innerHTML = "";
   (data.messages || []).slice(-30).forEach(m => addMsg(m.role, m.text, false));
 
-  $("decisions").innerHTML = listHtml(data.decisions, "まだありません。");
+  $("decisions").innerHTML = data.decisions.length
+  ? data.decisions.slice(-8).map((x, i) =>
+      `<div class="item"><b>${i + 1}.</b> ${esc(x.choice || x.text || "")}` +
+      `<div class="small">理由：${esc(x.reason || "未記録")}｜確信度：${esc(x.confidence || "未評価")}｜${esc(x.time || "")}</div></div>`
+    ).join("")
+  : "まだありません。";
   $("assumptions").innerHTML = listHtml(data.assumptions, "まだありません。");
   $("unresolved").innerHTML = listHtml(data.unresolved, "未解決事項はありません。");
   $("doNot").innerHTML = listHtml(data.doNot, "保留・非実装項目はありません。");
