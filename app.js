@@ -15,13 +15,20 @@ function createEmptyState() {
 
 const base = createEmptyState();
 
+
 function load() {
   try {
-    const current = JSON.parse(localStorage.getItem(KEY) || "null");
-    const old = current ? null : JSON.parse(localStorage.getItem(OLD_KEY) || "null");
+    const current = JSON.parse(
+      localStorage.getItem(KEY) || "null"
+    );
+    const old = current
+      ? null
+      : JSON.parse(localStorage.getItem(OLD_KEY) || "null");
     const saved = current || old || {};
-    return {
-      ...base, ...saved,
+
+    const restored = {
+      ...base,
+      ...saved,
       assumptions: saved.assumptions || [],
       decisions: saved.decisions || [],
       messages: saved.messages || [],
@@ -33,10 +40,39 @@ function load() {
       selfReviews: saved.selfReviews || [],
       tasks: saved.tasks || []
     };
-  } catch {
+
+    // 「次の一手」が完了済みタスクを指している場合だけ修正する
+    const completedTask = restored.tasks.find(
+      task =>
+        task.done &&
+        restored.next ===
+          `次は未完了タスク「${task.text}」に取り組む。`
+    );
+
+    if (completedTask) {
+      const pending = restored.tasks.filter(
+        task => !task.done
+      );
+
+      restored.next = pending.length
+        ? `次は未完了タスク「${pending[0].text}」に取り組む。`
+        : "未完了タスクはありません。次の作業を決めてタスクに追加する。";
+
+      // 修正した状態を保存する。保存に失敗しても読み込みは続ける
+      try {
+        localStorage.setItem(KEY, JSON.stringify(restored));
+      } catch (saveError) {
+        console.error("NEXA state repair save error:", saveError);
+      }
+    }
+
+    return restored;
+  } catch (e) {
+    console.error("NEXA load error:", e);
     return createEmptyState();
   }
 }
+
 
 let data = load();
 let stateCandidate = null;
