@@ -168,21 +168,33 @@ function saveNote() {
 /* タスク管理 */
 
 // タスク変更後の現在地・次の一手の更新候補を作る
+
+ // タスク変更後、現在地・次の一手を自動更新して保存する
 function showTaskStateAfterChange(changeText) {
   const total = data.tasks.length;
   const done = data.tasks.filter(t => t.done).length;
   const pending = data.tasks.filter(t => !t.done);
 
-  const stateText =
+  data.state =
     `タスク進捗：全${total}件中${done}件完了、未完了${pending.length}件。` +
     changeText;
 
-  const nextText = pending.length
+  data.next = pending.length
     ? `次は未完了タスク「${pending[0].text}」に取り組む。`
     : "未完了タスクはありません。次の作業を決めてタスクに追加する。";
 
-  showTaskStateCandidate(stateText, nextText);
+  // 画面表示も更新する
+  $("state").value = data.state;
+  $("next").value = data.next;
+
+  // 古い更新候補を無効にする
+  stateCandidate = null;
+  $("updateCandidate").hidden = true;
+
+  // 同期した現在地・次の一手を保存する
+  persist();
 }
+
 
 function addTask() {
   const input = $("taskInput");
