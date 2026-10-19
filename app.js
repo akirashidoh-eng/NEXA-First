@@ -203,9 +203,17 @@ function saveNote() {
 
 /* タスク管理 */
 
+// タスク変更前の状態を退避する
+function snapshotTaskState() {
+  return {
+    tasks: data.tasks.map(task => ({ ...task })),
+    state: data.state,
+    next: data.next
+  };
+}
 
- // タスク変更後、現在地・次の一手を自動更新して保存する
-function showTaskStateAfterChange(changeText, preferredTaskId = null) {
+// タスクと現在地・次の一手をまとめて保存する
+function showTaskStateAfterChange(changeText, previous, preferredTaskId = null) {
   const total = data.tasks.length;
   const done = data.tasks.filter(t => t.done).length;
   const pending = data.tasks.filter(t => !t.done);
@@ -217,23 +225,26 @@ function showTaskStateAfterChange(changeText, preferredTaskId = null) {
   const preferredTask = pending.find(
     t => String(t.id) === String(preferredTaskId)
   );
-
   const nextTask = preferredTask || pending[0];
 
   data.next = nextTask
     ? `次は未完了タスク「${nextTask.text}」に取り組む。`
     : "未完了タスクはありません。次の作業を決めてタスクに追加する。";
 
+  if (!persist()) {
+    data.tasks = previous.tasks;
+    data.state = previous.state;
+    data.next = previous.next;
+    return false;
+  }
+
   stateCandidate = null;
   $("updateCandidate").hidden = true;
-
-  if (!persist()) return false;
-
   $("state").value = data.state;
   $("next").value = data.next;
-
   return true;
 }
+
 function addTask() {
   const input = $("taskInput");
   const text = input.value.trim();
@@ -242,23 +253,25 @@ function addTask() {
     return addMsg("nexa", "追加するタスクを入力してね。");
   }
 
-  data.tasks.push({
+  const previous = snapshotTaskState();
+  const task = {
     id: Date.now() + Math.random(),
     text,
     done: false,
     time: now()
-  });
+  };
+  data.tasks.push(task);
 
-  if (persist()) {
+  if (showTaskStateAfterChange(
+    `「${text}」を追加した。`,
+    previous,
+    task.id
+  )) {
     input.value = "";
     renderTasks();
-
-    showTaskStateAfterChange(
-  `「${text}」を追加した。`,
-  data.tasks[data.tasks.length - 1].id
-);
-
     addMsg("nexa", "タスクを追加した：" + text);
+  } else {
+    renderTasks();
   }
 }
 
@@ -266,47 +279,47 @@ function toggleTask(id) {
   const task = data.tasks.find(
     t => String(t.id) === String(id)
   );
-
   if (!task) return;
 
+  const previous = snapshotTaskState();
   task.done = !task.done;
 
-  if (persist()) {
-    renderTasks();
-
-    showTaskStateAfterChange(
-      `「${task.text}」を${task.done ? "完了" : "未完了"}に変更した。`
-    );
-  }
+  showTaskStateAfterChange(
+    `「${task.text}」を${task.done ? "完了" : "未完了"}に変更した。`,
+    previous
+  );
+  renderTasks();
 }
 
 function deleteTask(id) {
   const task = data.tasks.find(
     t => String(t.id) === String(id)
   );
-
   if (!task) return;
 
+  const previous = snapshotTaskState();
   const deletedText = task.text;
 
   data.tasks = data.tasks.filter(
     t => String(t.id) !== String(id)
   );
 
-  if (persist()) {
+  if (showTaskStateAfterChange(
+    `「${deletedText}」を削除した。`,
+    previous
+  )) {
     renderTasks();
-
-    showTaskStateAfterChange(
-      `「${deletedText}」を削除した。`
-    );
-
     addMsg("nexa", "タスクを削除した：" + deletedText);
+  } else {
+    renderTasks();
   }
 }
 
+// タスク一覧を表示する
 function renderTasks() {
   const tasks = data.tasks || [];
   const done = tasks.filter(t => t.done).length;
+
   $("taskSummary").textContent =
     `全${tasks.length}件｜完了${done}件｜未完了${tasks.length - done}件`;
 
@@ -318,7 +331,6 @@ function renderTasks() {
     `<button class="secondary" onclick="deleteTask('${t.id}')">削除</button></div>`
   ).join("") : "タスクはありません。";
 }
-
 
 function confidence(v) {
   const text = String(v || "");
