@@ -21,7 +21,9 @@ function createHarness(initialData, shouldSave) {
     state: initialData.state || "元の現在地",
     next: initialData.next || "元の次の一手"
   };
-
+  // 画面の初期表示を、保存失敗前のデータと一致させる
+  elements.state.value = data.state;
+  elements.next.value = data.next;
   const sandbox = {
     data,
     stateCandidate: null,
@@ -81,7 +83,8 @@ test("追加：保存失敗ならタスクと入力を維持する", () => {
   assert.match(h.elements.taskSummary.textContent, /全1件/);
 });
 
-test("完了切替：保存失敗なら未完了に戻す", () => {
+
+test("完了切替：保存失敗ならデータとチェック表示を元に戻す", () => {
   const h = createHarness({
     tasks: [sampleTask()],
     state: "元の現在地",
@@ -93,8 +96,17 @@ test("完了切替：保存失敗なら未完了に戻す", () => {
   assert.equal(h.data.tasks[0].done, false);
   assert.equal(h.data.state, "元の現在地");
   assert.equal(h.data.next, "元の次の一手");
+  assert.equal(h.elements.state.value, "元の現在地");
+  assert.equal(h.elements.next.value, "元の次の一手");
   assert.match(h.elements.taskSummary.textContent, /未完了1件/);
+  assert.match(h.elements.taskList.innerHTML, /テスト用タスク/);
+  assert.doesNotMatch(
+    h.elements.taskList.innerHTML,
+    /type="checkbox"[^>]*checked/,
+    "保存失敗後のチェックボックスは未完了表示に戻る"
+  );
 });
+
 
 test("削除：保存失敗ならタスクを復元する", () => {
   const h = createHarness({
