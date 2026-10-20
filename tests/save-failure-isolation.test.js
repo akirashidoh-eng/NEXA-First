@@ -153,3 +153,59 @@ test("削除：保存成功ならタスクを削除する", () => {
   assert.equal(h.data.tasks.length, 0);
   assert.match(h.elements.taskSummary.textContent, /全0件/);
 });
+function createPersistHarness(shouldThrow) {
+  const KEY = "nexa_first_state_v3";
+  const data = {
+    goal: "テスト目的",
+    state: "元の現在地",
+    next: "元の次の一手",
+    tasks: []
+  };
+  const originalValue = "既存の保存データ";
+  const stored = new Map([[KEY, originalValue]]);
+  const alerts = [];
+
+  const sandbox = {
+    KEY,
+    data,
+    localStorage: {
+      setItem(key, value) {
+        if (shouldThrow) throw new Error("quota exceeded");
+        stored.set(key, value);
+      }
+    },
+    alert: message => alerts.push(message),
+    console: { error() {} }
+  };
+
+  const appPath = path.join(__dirname, "..", "app.js");
+  const app = fs.readFileSync(appPath, "utf8");
+  const start = app.indexOf("function persist()");
+  const end = app.indexOf("function esc(", start);
+
+  assert.notEqual(start, -1, "persist関数が見つからない");
+  assert.notEqual(end, -1, "persist関数の終了位置が見つからない");
+
+  vm.runInNewContext(
+    app.slice(start, end) + "\nthis.persist = persist;",
+    sandbox
+  );
+
+  return { persist: sandbox.persist, data, stored, alerts, KEY, originalValue };
+}
+
+test("persist：localStorage保存失敗ならfalseを返し、警告する", () => {
+  const h = createPersistHarness(true);
+
+  assert.equal(h.persist(), false);
+  assert.equal(h.stored.get(h.KEY), h.originalValue);
+  assert.equal(h.alerts.length, 1);
+  assert.match(h.alerts[0], /保存できませんでした/);
+});
+
+test("persist：localStorage保存成功ならtrueを返してデータを書き込む", () => {
+  const h = createPersistHarness(false);
+
+  assert.equal(h.persist(), true);
+  assert.equal(h.stored.get(h.KEY), JSON.stringify(h.data));
+});
