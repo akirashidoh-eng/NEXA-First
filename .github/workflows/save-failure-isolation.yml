@@ -5,9 +5,9 @@ on:
   push:
     branches:
       - test/save-failure-isolation
-  pull_request:
+    pull_request:
     branches:
-      - test/save-failure-isolation
+      - main
 
 permissions:
   contents: read
