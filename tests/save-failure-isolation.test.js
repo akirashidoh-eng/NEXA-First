@@ -209,3 +209,66 @@ test("persist：localStorage保存成功ならtrueを返してデータを書き
   assert.equal(h.persist(), true);
   assert.equal(h.stored.get(h.KEY), JSON.stringify(h.data));
 });
+function createSaveStateHarness(shouldSave) {
+  const elements = {
+    goal: { value: "新しい目的" },
+    state: { value: "新しい現在地" },
+    next: { value: "新しい次の一手" }
+  };
+  const data = {
+    goal: "元の目的",
+    state: "元の現在地",
+    next: "元の次の一手"
+  };
+  const messages = [];
+  const sandbox = {
+    data,
+    $: id => elements[id],
+    persist: () => shouldSave(),
+    addMsg: (...args) => messages.push(args)
+  };
+  const appPath = path.join(__dirname, "..", "app.js");
+  const app = fs.readFileSync(appPath, "utf8");
+  const start = app.indexOf("function saveState()");
+  const end = app.indexOf("function restart(", start);
+
+  assert.notEqual(start, -1, "saveState関数が見つからない");
+  assert.notEqual(end, -1, "saveState関数の終了位置が見つからない");
+
+  vm.runInNewContext(
+    app.slice(start, end) + "\nthis.saveState = saveState;",
+    sandbox
+  );
+
+  return { saveState: sandbox.saveState, data, elements, messages };
+}
+
+test("状態保存：保存失敗なら内部データを維持し、入力と成功メッセージを残さない", () => {
+  const h = createSaveStateHarness(() => false);
+
+  h.saveState();
+
+  assert.equal(h.data.goal, "元の目的");
+  assert.equal(h.data.state, "元の現在地");
+  assert.equal(h.data.next, "元の次の一手");
+  assert.equal(h.elements.goal.value, "新しい目的", "入力内容は再試行できるよう画面に残す");
+  assert.equal(h.elements.state.value, "新しい現在地");
+  assert.equal(h.elements.next.value, "新しい次の一手");
+  assert.equal(h.messages.length, 0, "保存失敗時に成功メッセージを出さない");
+});
+test("状態保存：保存成功なら新しいデータを保持し、成功メッセージを出す", () => {
+  const h = createSaveStateHarness(() => true);
+
+  h.saveState();
+
+  assert.equal(h.data.goal, "新しい目的");
+  assert.equal(h.data.state, "新しい現在地");
+  assert.equal(h.data.next, "新しい次の一手");
+  assert.equal(h.messages.length, 1);
+  assert.equal(
+    h.messages[0][1],
+    "目的・現在地・次の一手を保存した。"
+  );
+});
+
+
