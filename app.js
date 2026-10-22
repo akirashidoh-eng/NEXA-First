@@ -149,12 +149,24 @@ function render() {
 }
 
 function saveState() {
+  const previous = {
+    goal: data.goal,
+    state: data.state,
+    next: data.next
+  };
+
   data.goal = $("goal").value.trim();
   data.state = $("state").value.trim();
   data.next = $("next").value.trim();
-  if (persist()) addMsg("nexa", "目的・現在地・次の一手を保存した。");
-}
 
+  if (persist()) {
+    addMsg("nexa", "目的・現在地・次の一手を保存した。");
+  } else {
+    data.goal = previous.goal;
+    data.state = previous.state;
+    data.next = previous.next;
+  }
+}
 function restart() {
   const d = data;
   $("restartBox").innerHTML =
