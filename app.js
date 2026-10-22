@@ -566,18 +566,69 @@ function acceptStateCandidate() {
     stateCandidate = null;
   }
 }
-function buildRecommendationReport() {
-  const rec = recommendNextAction();
+function recommendNextAction() {
+  const pendingTasks =
+    (data.tasks || []).filter(t => !t.done);
 
-  return (
-    "推奨する次の行動\n\n" +
-    rec.action +
-    "\n\n理由\n" +
-    rec.reason +
-    "\n\n目的\n" +
-    (data.goal || "未設定")
-  );
+  const unresolved =
+    (data.unresolved || []).slice(-5);
+
+  const memories =
+    data.memory?.profile || [];
+
+  const goal = data.goal || "未設定";
+
+  if (pendingTasks.length) {
+    const task = pendingTasks[0];
+
+    const reasons = [];
+
+    reasons.push("未完了タスクである");
+
+    if (goal !== "未設定") {
+      reasons.push(`目的「${goal}」に近づける`);
+    }
+
+    const simplePreference = memories.some(
+      x => /シンプル|簡潔|最小/.test(x.text)
+    );
+
+    if (
+      simplePreference &&
+      !/大型|全部入り|大規模/.test(task.text)
+    ) {
+      reasons.push("記憶している「シンプル重視」と矛盾しない");
+    }
+
+    return {
+      action: task.text,
+      reason: reasons.join("、")
+    };
+  }
+
+  if (unresolved.length) {
+    return {
+      action: unresolved[0].text,
+      reason:
+        "未解決事項が残っているため整理を優先する"
+    };
+  }
+
+  if (data.next) {
+    return {
+      action: data.next,
+      reason:
+        "登録済みの次の一手があるため"
+    };
+  }
+
+  return {
+    action: "次の作業を決める",
+    reason:
+      "未完了タスクと未解決事項がないため"
+  };
 }
+
 
 function dismissStateCandidate() {
   if (!stateCandidate) return;
@@ -609,6 +660,14 @@ function buildContextReply(v) {
   let reply;
 
   // 記憶の質問を先に判定する
+  if (/軍師|ブリーフィング|状況報告/.test(text)) {
+  return (
+    memorySummary() +
+    "\n\n" +
+    buildRecommendationReport()
+  );
+}
+
   if (
   /おすすめ|推奨|何をする|次は何をする|次どうする|何からやる/.test(text)
 ) {
