@@ -920,15 +920,20 @@ function memorySummary() {
 
   "\n\n最近の判断\n" +
   format(
-  data.decisions
-    .slice(-3)
-    .filter(x => x?.choice)
-    .map(x => ({ text: x.choice }))
-)
- +
+    data.decisions
+      .slice(-3)
+      .filter(x => x?.choice)
+      .map(x => ({ text: x.choice }))
+  ) +
 
   "\n\n気になっていること\n" +
-  format(data.unresolved)
+  format(data.unresolved) +
+
+  "\n\n現在の目的\n" +
+  (data.goal || "未設定") +
+
+  "\n\n次の一手\n" +
+  (data.next || "未設定")
 );
 
 }
