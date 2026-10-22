@@ -1,3 +1,4 @@
+
 const KEY = "nexa_first_state_v3";
 const OLD_KEY = "nexa_first_state_v2";
 const $ = id => document.getElementById(id);
@@ -9,12 +10,16 @@ function createEmptyState() {
     assumptions: [], decisions: [], lastChoice: null,
     messages: [], unresolved: [], doNot: [],
     recommendations: [], priorities: [], notes: [],
-    selfReviews: [], tasks: []
+    selfReviews: [], tasks: [],
+    memory: {
+      profile: [],
+      lessons: [],
+      importantFacts: []
+    }
   };
 }
 
 const base = createEmptyState();
-
 
 function load() {
   try {
@@ -38,7 +43,12 @@ function load() {
       priorities: saved.priorities || [],
       notes: saved.notes || [],
       selfReviews: saved.selfReviews || [],
-      tasks: saved.tasks || []
+      tasks: saved.tasks || [],
+      memory: {
+        profile: saved.memory?.profile || [],
+        lessons: saved.memory?.lessons || [],
+        importantFacts: saved.memory?.importantFacts || []
+      }
     };
 
     // 「次の一手」が完了済みタスクを指している場合だけ修正する
@@ -58,7 +68,6 @@ function load() {
         ? `次は未完了タスク「${pending[0].text}」に取り組む。`
         : "未完了タスクはありません。次の作業を決めてタスクに追加する。";
 
-      // 修正した状態を保存する。保存に失敗しても読み込みは続ける
       try {
         localStorage.setItem(KEY, JSON.stringify(restored));
       } catch (saveError) {
@@ -72,7 +81,6 @@ function load() {
     return createEmptyState();
   }
 }
-
 
 let data = load();
 let stateCandidate = null;
@@ -104,7 +112,9 @@ function addMsg(role, text, save = true) {
 
   if (save) {
     data.messages.push({ role, text, time: now() });
-    if (data.messages.length > 200) data.messages = data.messages.slice(-200);
+    if (data.messages.length > 200) {
+      data.messages = data.messages.slice(-200);
+    }
     persist();
   }
 }
@@ -124,25 +134,33 @@ function render() {
   $("next").value = data.next || "";
 
   $("chat").innerHTML = "";
-  (data.messages || []).slice(-30).forEach(m => addMsg(m.role, m.text, false));
+  (data.messages || []).slice(-30).forEach(
+    m => addMsg(m.role, m.text, false)
+  );
 
   $("decisions").innerHTML = data.decisions.length
-  ? data.decisions.slice(-8).map((x, i) =>
-      `<div class="item"><b>${i + 1}.</b> ${esc(x.choice || x.text || "")}` +
-      `<div class="small">理由：${esc(x.reason || "未記録")}｜確信度：${esc(x.confidence || "未評価")}｜${esc(x.time || "")}</div></div>`
-    ).join("")
-  : "まだありません。";
-  $("assumptions").innerHTML = listHtml(data.assumptions, "まだありません。");
-  $("unresolved").innerHTML = listHtml(data.unresolved, "未解決事項はありません。");
-  $("doNot").innerHTML = listHtml(data.doNot, "保留・非実装項目はありません。");
-  $("priorities").innerHTML = listHtml(data.priorities, "まだありません。");
-  $("notes").innerHTML = listHtml(data.notes, "作業メモはありません。");
+    ? data.decisions.slice(-8).map((x, i) =>
+        `<div class="item"><b>${i + 1}.</b> ${esc(x.choice || x.text || "")}` +
+        `<div class="small">理由：${esc(x.reason || "未記録")}｜確信度：${esc(x.confidence || "未評価")}｜${esc(x.time || "")}</div></div>`
+      ).join("")
+    : "まだありません。";
+
+  $("assumptions").innerHTML =
+    listHtml(data.assumptions, "まだありません。");
+  $("unresolved").innerHTML =
+    listHtml(data.unresolved, "未解決事項はありません。");
+  $("doNot").innerHTML =
+    listHtml(data.doNot, "保留・非実装項目はありません。");
+  $("priorities").innerHTML =
+    listHtml(data.priorities, "まだありません。");
+  $("notes").innerHTML =
+    listHtml(data.notes, "作業メモはありません。");
 
   $("recommendations").innerHTML = data.recommendations.length
     ? data.recommendations.slice(-6).map((x, i) =>
-      `<div class="item"><b>${i + 1}.</b> ${esc(x.text)}` +
-      `<div class="small">理由：${esc(x.reason)}｜確信度：${esc(x.confidence)}｜${esc(x.time)}</div></div>`
-    ).join("")
+        `<div class="item"><b>${i + 1}.</b> ${esc(x.text)}` +
+        `<div class="small">理由：${esc(x.reason)}｜確信度：${esc(x.confidence)}｜${esc(x.time)}</div></div>`
+      ).join("")
     : "まだありません。";
 
   renderTasks();
@@ -167,6 +185,7 @@ function saveState() {
     data.next = previous.next;
   }
 }
+
 function restart() {
   const d = data;
   $("restartBox").innerHTML =
@@ -212,10 +231,8 @@ function saveNote() {
   }
 }
 
-
 /* タスク管理 */
 
-// タスク変更前の状態を退避する
 function snapshotTaskState() {
   return {
     tasks: data.tasks.map(task => ({ ...task })),
@@ -224,8 +241,11 @@ function snapshotTaskState() {
   };
 }
 
-// タスクと現在地・次の一手をまとめて保存する
-function showTaskStateAfterChange(changeText, previous, preferredTaskId = null) {
+function showTaskStateAfterChange(
+  changeText,
+  previous,
+  preferredTaskId = null
+) {
   const total = data.tasks.length;
   const done = data.tasks.filter(t => t.done).length;
   const pending = data.tasks.filter(t => !t.done);
@@ -327,7 +347,6 @@ function deleteTask(id) {
   }
 }
 
-// タスク一覧を表示する
 function renderTasks() {
   const tasks = data.tasks || [];
   const done = tasks.filter(t => t.done).length;
@@ -352,20 +371,17 @@ function confidence(v) {
   );
 
   if (explicit) return explicit[1];
-
   if (/確実|確定|間違いない/.test(text)) return "高";
   if (/たぶん|おそらく|可能性|推測/.test(text)) return "中";
 
   return "未評価";
 }
 
-
 function priority(v) {
   if (/最優先|急ぎ|今すぐ|至急/.test(v)) return "高";
   if (/重要|先に|優先/.test(v)) return "中";
   return "低";
 }
-
 
 function contradiction(v) {
   const assumptions = data.assumptions
@@ -392,8 +408,10 @@ function contradiction(v) {
 
   for (const assumption of assumptions) {
     for (const check of checks) {
-      if (check.assumption.test(assumption) &&
-          check.proposal.test(v)) {
+      if (
+        check.assumption.test(assumption) &&
+        check.proposal.test(v)
+      ) {
         return (
           "保存済みの前提：「" + assumption + "」\n" +
           "今回の提案：「" + v + "」\n" +
@@ -408,11 +426,9 @@ function contradiction(v) {
   return null;
 }
 
-
 function decisionWords(v) {
   return /決めた|決定|選ぶ|選んだ|これでいく|これで行く|①|②|③|採用|却下/.test(v);
 }
-
 
 function extractDecisionReason(v) {
   const text = String(v || "");
@@ -424,7 +440,6 @@ function extractDecisionReason(v) {
     ? match[1].trim()
     : "理由未記録（後で確認）";
 }
-
 
 function showStateCandidate(type, text) {
   stateCandidate = { type, text };
@@ -499,13 +514,19 @@ function buildContextReply(v) {
   const pending = data.tasks.filter(t => !t.done);
   let reply;
 
-  if (/^(こんにちは|こんばんは|おはよう|おはようございます|やあ|やっほー|よろしく|ヨロシク)[！!。.\s]*$/i.test(text)) {
-    return /おはよう/.test(text) ? "おはよう！今日は何から始めようか？"
-      : /こんばんは/.test(text) ? "こんばんは！今日は何を進めようか？"
-      : "了解！何を手伝おうか？";
+  // 記憶の質問を先に判定する
+  if (/何を覚えて|何を覚えてる|覚えてること|記憶していること/.test(text)) {
+    return memorySummary();
   }
 
-  // タスクに関する質問を先に判定する
+  if (/^(こんにちは|こんばんは|おはよう|おはようございます|やあ|やっほー|よろしく|ヨロシク)[！!。.\s]*$/i.test(text)) {
+    return /おはよう/.test(text)
+      ? "おはよう！今日は何から始めようか？"
+      : /こんばんは/.test(text)
+        ? "こんばんは！今日は何を進めようか？"
+        : "了解！何を手伝おうか？";
+  }
+
   if (/タスク|作業/.test(text) && /何|残|未完了|次|一覧|状況|進捗|確認/.test(text)) {
     return pending.length
       ? "未完了タスク：\n" + pending.map((t, i) => `${i + 1}. ${t.text}`).join("\n")
@@ -514,8 +535,10 @@ function buildContextReply(v) {
 
   if (/どこまで|進捗|進んだ|現状|現在地|今の状態|次に何|次は何|次の一手/.test(text)) {
     return `【目的】${goal}\n【現在地】${state}\n【次の一手】${next}` +
-      `\n【未完了タスク】${pending.length}件` +
-      (pending.length ? "\n" + pending.slice(0, 5).map((t, i) => `${i + 1}. ${t.text}`).join("\n") : "");
+      `\n【未完了タスク】${pending.length}` +
+      (pending.length
+        ? "件\n" + pending.slice(0, 5).map((t, i) => `${i + 1}. ${t.text}`).join("\n")
+        : "件");
   }
 
   if (/3つ|三つ|アイデア|案を|提案|機能/.test(text)) {
@@ -524,6 +547,7 @@ function buildContextReply(v) {
       ["判断理由の記録", "選択の理由と前提を保存し、後で判断を見直せる"],
       ["作業再開サマリー", "前回の状態・タスク・未解決事項を一画面で確認できる"]
     ];
+
     reply = "提案は3つ。\n" + ideas.map((x, i) =>
       `${i + 1}. ${x[0]}：${x[1]}`
     ).join("\n");
@@ -563,20 +587,27 @@ function buildContextReply(v) {
   return reply;
 }
 
-
 function handleSelfReview(v) {
   if (!/自己点検|改善記録|自己改善状況|答えになってない|的外れ|話が違う|そうじゃない|期待と違う|改善してほしい|意図と違う/.test(v)) return false;
 
   const reviews = data.selfReviews || [];
-  if (/自己点検|改善記録|自己改善状況/.test(v) &&
-      !/答えになってない|的外れ|話が違う|そうじゃない|期待と違う|改善してほしい|意図と違う/.test(v)) {
+
+  if (
+    /自己点検|改善記録|自己改善状況/.test(v) &&
+    !/答えになってない|的外れ|話が違う|そうじゃない|期待と違う|改善してほしい|意図と違う/.test(v)
+  ) {
     addMsg("nexa", reviews.length
-      ? reviews.slice(-5).map((x, i) => `${i + 1}. 指摘：${x.feedback}\n原因候補：${x.cause}\n改善案：${x.proposal}\n状態：${x.status}`).join("\n\n")
+      ? reviews.slice(-5).map((x, i) =>
+          `${i + 1}. 指摘：${x.feedback}\n原因候補：${x.cause}\n改善案：${x.proposal}\n状態：${x.status}`
+        ).join("\n\n")
       : "自己点検記録はまだないよ。");
     return true;
   }
 
-  const previous = [...data.messages].reverse().find(m => m.role === "nexa");
+  const previous = [...data.messages].reverse().find(
+    m => m.role === "nexa"
+  );
+
   const review = {
     feedback: v,
     previousReply: previous ? previous.text : "",
@@ -585,27 +616,58 @@ function handleSelfReview(v) {
     status: "原因候補を記録・改善未検証",
     time: now()
   };
+
   data.selfReviews.push(review);
   data.selfReviews = data.selfReviews.slice(-50);
   persist();
-  addMsg("nexa", `指摘を記録した。\n原因候補：${review.cause}\n改善案：${review.proposal}\n※記録しただけで、コードの自動修正や動作テストをしたわけではないよ。`);
+
+  addMsg(
+    "nexa",
+    `指摘を記録した。\n原因候補：${review.cause}\n改善案：${review.proposal}\n※記録しただけで、コードの自動修正や動作テストをしたわけではないよ。`
+  );
   return true;
 }
 
 function analyze(v) {
   if (handleSelfReview(v)) return;
 
-  
-const conflict = contradiction(v);
+  // 記憶として登録する
+  if (/覚えておいて|記憶して|忘れないで/.test(v)) {
+    const remembered = v
+      .replace(/覚えておいて/g, "")
+      .replace(/記憶して/g, "")
+      .replace(/忘れないで/g, "")
+      .trim();
 
-if (conflict) {
-  addMsg("nexa", "⚠️ 前提確認\n" + conflict);
-  return;
-}
+    if (!remembered) {
+      addMsg("nexa", "覚えておく内容を入力してね。");
+      return;
+    }
 
+    if (!remember("profile", remembered, "high")) {
+      addMsg("nexa", "記憶を保存できなかった。保存状態を確認してね。");
+      return;
+    }
+
+    addMsg(
+      "nexa",
+      "覚えていることとして記録した。\n\n" + remembered
+    );
+    return;
+  }
+
+  const conflict = contradiction(v);
+
+  if (conflict) {
+    addMsg("nexa", "⚠️ 前提確認\n" + conflict);
+    return;
+  }
 
   if (/^(?:次は|次の一手は|次の一手[：:])\s*(.{2,100})[。.!！]*$/.test(v)) {
-    showStateCandidate("next", v.match(/^(?:次は|次の一手は|次の一手[：:])\s*(.{2,100})[。.!！]*$/)[1].trim());
+    showStateCandidate(
+      "next",
+      v.match(/^(?:次は|次の一手は|次の一手[：:])\s*(.{2,100})[。.!！]*$/)[1].trim()
+    );
     addMsg("nexa", "次にやることの更新候補を表示したよ。確認して反映してね。");
     return;
   }
@@ -625,7 +687,11 @@ if (conflict) {
   }
 
   if (/最優先|急ぎ|今すぐ|至急|重要|先に|優先/.test(v) && !decisionWords(v)) {
-    data.priorities.push({ text: v, priority: priority(v), time: now() });
+    data.priorities.push({
+      text: v,
+      priority: priority(v),
+      time: now()
+    });
     persist();
     render();
     addMsg("nexa", `優先事項として記録した。優先度は「${priority(v)}」。`);
@@ -661,52 +727,67 @@ if (conflict) {
 
   if (/迷|悩|どうする|どっち|選択肢/.test(v)) {
     const reason = "目的・前提・リスクを確認してから進むと、後戻りを減らせるため";
-    data.recommendations.push({ text: "② 一度整理する", reason, confidence: "中", importance: "高", time: now() });
+
+    data.recommendations.push({
+      text: "② 一度整理する",
+      reason,
+      confidence: "中",
+      importance: "高",
+      time: now()
+    });
+
     persist();
     render();
-    addMsg("nexa", `①そのまま進む\n②一度整理する\n③今は決めない\n\nNEXAの推奨：② 一度整理する。\n理由：${reason}。\n情報不足なら③も合理的。最終判断はAKIRA。`);
+
+    addMsg(
+      "nexa",
+      `①そのまま進む\n②一度整理する\n③今は決めない\n\nNEXAの推奨：② 一度整理する。\n理由：${reason}。\n情報不足なら③も合理的。最終判断はAKIRA。`
+    );
     return;
   }
 
   if (/今は決めない|決めない|判断しない|保留する/.test(v)) {
     data.lastChoice = { text: v, time: now() };
-    data.decisions.push({ choice: "今は決めない", reason: "判断材料を追加確認", confidence: "高", time: now() });
+    data.decisions.push({
+      choice: "今は決めない",
+      reason: "判断材料を追加確認",
+      confidence: "高",
+      time: now()
+    });
+
     persist();
     render();
     addMsg("nexa", "「今は決めない」を判断として記録した。材料が揃ってから再判断しよう。");
     return;
   }
 
-  
-if (decisionWords(v)) {
-  const reason = extractDecisionReason(v);
-  const level = confidence(v);
+  if (decisionWords(v)) {
+    const reason = extractDecisionReason(v);
+    const level = confidence(v);
 
-  data.lastChoice = {
-    text: v,
-    reason,
-    confidence: level,
-    time: now()
-  };
+    data.lastChoice = {
+      text: v,
+      reason,
+      confidence: level,
+      time: now()
+    };
 
-  data.decisions.push({
-    choice: v,
-    reason,
-    confidence: level,
-    time: now()
-  });
+    data.decisions.push({
+      choice: v,
+      reason,
+      confidence: level,
+      time: now()
+    });
 
-  if (persist()) {
-    render();
-    addMsg(
-      "nexa",
-      `判断を記録した。\n理由：${reason}\n確信度：${level}`
-    );
+    if (persist()) {
+      render();
+      addMsg(
+        "nexa",
+        `判断を記録した。\n理由：${reason}\n確信度：${level}`
+      );
+    }
+    return;
   }
-
-  return;
-}
-
 
   if (/前提|条件/.test(v)) {
     data.assumptions.push({ text: v, time: now() });
@@ -741,6 +822,73 @@ function send() {
   addMsg("user", v);
   $("message").value = "";
   analyze(v);
+}
+
+/* 記憶機能 */
+
+function remember(type, text, importance = "medium") {
+  if (!data.memory || typeof data.memory !== "object") {
+    data.memory = {
+      profile: [],
+      lessons: [],
+      importantFacts: []
+    };
+  }
+
+  if (typeof text !== "string" || !text.trim()) {
+    return false;
+  }
+
+  const bucket = data.memory[type];
+  if (!Array.isArray(bucket)) {
+    return false;
+  }
+
+  const previous = bucket.slice();
+
+  bucket.push({
+    text: text.trim(),
+    importance,
+    time: now()
+  });
+
+  if (bucket.length > 100) {
+    bucket.splice(0, bucket.length - 100);
+  }
+
+  if (!persist()) {
+    data.memory[type] = previous;
+    return false;
+  }
+
+  return true;
+}
+
+function memorySummary() {
+  const memory = data.memory || {};
+
+  const format = items => {
+    if (!Array.isArray(items)) return "なし";
+
+    const entries = items
+      .slice(-5)
+      .map(x => String(x?.text || "").trim())
+      .filter(Boolean);
+
+    return entries.length
+      ? entries.map(text => "・" + text).join("\n")
+      : "なし";
+  };
+
+  return (
+    "覚えていること\n\n" +
+    "AKIRAについて\n" +
+    format(memory.profile) +
+    "\n\n最近学んだこと\n" +
+    format(memory.lessons) +
+    "\n\n重要事項\n" +
+    format(memory.importantFacts)
+  );
 }
 
 render();
