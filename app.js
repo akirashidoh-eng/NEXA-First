@@ -21,67 +21,6 @@ function createEmptyState() {
 }
 
 const base = createEmptyState();
-function recommendNextAction() {
-  const pendingTasks =
-    (data.tasks || []).filter(t => !t.done);
-
-  const unresolved =
-    (data.unresolved || []).slice(-5);
-
-  const preferences =
-    data.memory?.profile || [];
-
-  const goal = data.goal || "未設定";
-
-  // 1. 未完了タスク優先
-  if (pendingTasks.length) {
-    const task = pendingTasks[0];
-
-    let reason =
-      "未完了タスクであり、現在の目的に直接近づけるため。";
-
-    const simplePreference = preferences.some(
-      x => /シンプル|簡潔|最小/.test(x.text)
-    );
-
-    if (
-      simplePreference &&
-      /大型|全部入り|大規模/.test(task.text)
-    ) {
-      reason =
-        "未完了タスクだが、記憶している「シンプル重視」とは少し方向が異なる。";
-    }
-
-    return {
-      action: task.text,
-      reason
-    };
-  }
-
-  // 2. 未解決事項
-  if (unresolved.length) {
-    return {
-      action: unresolved[0].text,
-      reason:
-        "未解決事項が残っているため、先に整理した方が良い。"
-    };
-  }
-
-  // 3. 次の一手
-  if (data.next) {
-    return {
-      action: data.next,
-      reason:
-        "登録済みの次の一手があるため。"
-    };
-  }
-
-  return {
-    action: "次の作業を決める",
-    reason:
-      "未完了タスク・未解決事項がないため。"
-  };
-}
 
 function load() {
   try {
@@ -564,7 +503,10 @@ function acceptStateCandidate() {
     $("updateCandidate").hidden = true;
     addMsg("nexa", "状態更新候補を反映して保存した。");
     stateCandidate = null;
-  }function recommendNextAction() {
+  }
+}
+
+function recommendNextAction() {
   const pendingTasks =
     (data.tasks || []).filter(t => !t.done);
 
@@ -650,7 +592,6 @@ function buildRecommendationReport() {
     "件"
   );
 }
-
 
 function dismissStateCandidate() {
   if (!stateCandidate) return;
