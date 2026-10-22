@@ -564,10 +564,7 @@ function acceptStateCandidate() {
     $("updateCandidate").hidden = true;
     addMsg("nexa", "状態更新候補を反映して保存した。");
     stateCandidate = null;
-  }
-}const pendingTasks =
-  
-function recommendNextAction() {
+  }function recommendNextAction() {
   const pendingTasks =
     (data.tasks || []).filter(t => !t.done);
 
@@ -637,7 +634,6 @@ function buildRecommendationReport() {
 
   return (
     "軍師レポート\n\n" +
-
     "推奨する次の行動\n" +
     rec.action +
 
@@ -653,59 +649,6 @@ function buildRecommendationReport() {
       .length) +
     "件"
   );
-}
-
-    (data.tasks || []).filter(t => !t.done);
-
-  const unresolved =
-    (data.unresolved || []).slice(-5);
-
-  const preferences =
-    data.memory?.profile || [];
-
-  const goal = data.goal || "未設定";
-
-}
-
-
-    const simplePreference = memories.some(
-      x => /シンプル|簡潔|最小/.test(x.text)
-    );
-
-    if (
-      simplePreference &&
-      !/大型|全部入り|大規模/.test(task.text)
-    ) {
-      reasons.push("記憶している「シンプル重視」と矛盾しない");
-    }
-
-    return {
-      action: task.text,
-      reason: reasons.join("、")
-    };
-  }
-
-  if (unresolved.length) {
-    return {
-      action: unresolved[0].text,
-      reason:
-        "未解決事項が残っているため整理を優先する"
-    };
-  }
-
-  if (data.next) {
-    return {
-      action: data.next,
-      reason:
-        "登録済みの次の一手があるため"
-    };
-  }
-
-  return {
-    action: "次の作業を決める",
-    reason:
-      "未完了タスクと未解決事項がないため"
-  };
 }
 
 
