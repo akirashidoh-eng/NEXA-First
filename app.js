@@ -1,6 +1,7 @@
 
-const KEY = "nexa_first_state_v3";
-const OLD_KEY = "nexa_first_state_v2";
+const KEY = "nexa_first_state_v4";
+const OLD_KEY = "nexa_first_state_v3";
+
 const $ = id => document.getElementById(id);
 const now = () => new Date().toLocaleString("ja-JP");
 
@@ -187,6 +188,11 @@ function saveState() {
 }
 
 function restart() {
+　const memoryCount =
+  (d.memory?.profile?.length || 0) +
+  (d.memory?.lessons?.length || 0) +
+  (d.memory?.importantFacts?.length || 0);
+
   const d = data;
   $("restartBox").innerHTML =
     `<b>おかえり、AKIRA。</b><br>` +
@@ -194,7 +200,8 @@ function restart() {
     `現在地：${esc(d.state || "未設定")}<br>` +
     `次の一手：${esc(d.next || "未設定")}<br>` +
     `タスク：${d.tasks.filter(t => !t.done).length}件未完了｜` +
-    `未解決：${d.unresolved.length}件｜判断：${d.decisions.length}件`;
+    `未解決：${d.unresolved.length}件｜判断：${d.decisions.length}件｜記憶：${memoryCount}件`;
+
 
   addMsg("nexa",
     `前回状態を確認した。\n目的：${d.goal || "未設定"}` +
@@ -651,7 +658,9 @@ function analyze(v) {
 
     addMsg(
       "nexa",
-      "覚えていることとして記録した。\n\n" + remembered
+      "了解。\n覚えていることに追加した。\n今後の判断で参照する。\n\n" +
+remembered
+
     );
     return;
   }
@@ -843,11 +852,21 @@ function remember(type, text, importance = "medium") {
   if (!Array.isArray(bucket)) {
     return false;
   }
+const normalizedText = text.trim();
+
+const exists = bucket.some(
+  item => item.text === normalizedText
+);
+
+if (exists) {
+  return true;
+}
 
   const previous = bucket.slice();
 
   bucket.push({
-    text: text.trim(),
+    text: normalizedText,
+
     importance,
     time: now()
   });
