@@ -189,11 +189,19 @@ function saveState() {
 function restart() {
   const d = data;
 
+  const memoryCount =
+    (d.memory?.profile?.length || 0) +
+    (d.memory?.lessons?.length || 0) +
+    (d.memory?.importantFacts?.length || 0);
+
   const recentMemory =
-  d.memory?.profile
-    ?.slice(-3)
-    ?.map(x => `・${x.text}`)
-    ?.join("\n") || "なし";
+    d.memory?.profile
+      ?.slice(-3)
+      ?.map(x => `・${x.text}`)
+      ?.join("\n") || "なし";
+
+  ...
+}
 
 
   $("restartBox").innerHTML =
@@ -207,15 +215,17 @@ function restart() {
     `記憶：${memoryCount}件`;
 
   addMsg(
-    "nexa",
-    `前回状態を確認した。\n目的：${d.goal || "未設定"}` +
-    `\n現在地：${d.state || "未設定"}` +
-    `\n次の一手：${d.next || "未設定"}` +
-    `\n未完了タスク：${d.tasks.filter(t => !t.done).length}件` +
-    `\n未解決事項：${d.unresolved.length}件` +
-    `\n記憶：${memoryCount}件` +
-    `\nここから続けよう。`
-  );
+  "nexa",
+  `前回状態を確認した。\n目的：${d.goal || "未設定"}` +
+  `\n現在地：${d.state || "未設定"}` +
+  `\n次の一手：${d.next || "未設定"}` +
+  `\n未完了タスク：${d.tasks.filter(t => !t.done).length}件` +
+  `\n未解決事項：${d.unresolved.length}件` +
+  `\n記憶：${memoryCount}件` +
+  `\n\n最近覚えていること\n${recentMemory}` +
+  `\n\nここから続けよう。`
+);
+
 }
 
 function clearAll() {
