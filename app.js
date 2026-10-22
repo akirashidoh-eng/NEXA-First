@@ -189,10 +189,12 @@ function saveState() {
 function restart() {
   const d = data;
 
-  const memoryCount =
-    (d.memory?.profile?.length || 0) +
-    (d.memory?.lessons?.length || 0) +
-    (d.memory?.importantFacts?.length || 0);
+  const recentMemory =
+  d.memory?.profile
+    ?.slice(-3)
+    ?.map(x => `・${x.text}`)
+    ?.join("\n") || "なし";
+
 
   $("restartBox").innerHTML =
     `<b>おかえり、AKIRA。</b><br>` +
@@ -298,11 +300,12 @@ function addTask() {
 
   const previous = snapshotTaskState();
   const task = {
-    id: Date.now() + Math.random(),
-    text,
-    done: false,
-    time: now()
-  };
+  id: crypto.randomUUID(),
+  text,
+  done: false,
+  time: now()
+};
+
   data.tasks.push(task);
 
   if (showTaskStateAfterChange(
@@ -904,14 +907,21 @@ function memorySummary() {
   };
 
   return (
-    "覚えていること\n\n" +
-    "AKIRAについて\n" +
-    format(memory.profile) +
-    "\n\n最近学んだこと\n" +
-    format(memory.lessons) +
-    "\n\n重要事項\n" +
-    format(memory.importantFacts)
-  );
+  "覚えていること\n\n" +
+  "AKIRAについて\n" +
+  format(memory.profile) +
+
+  "\n\n最近の判断\n" +
+  format(
+    data.decisions.slice(-3).map(
+      x => ({ text: x.choice })
+    )
+  ) +
+
+  "\n\n気になっていること\n" +
+  format(data.unresolved)
+);
+
 }
 
 render();
