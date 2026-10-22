@@ -186,29 +186,33 @@ function saveState() {
     data.next = previous.next;
   }
 }
-
 function restart() {
-　const memoryCount =
-  (d.memory?.profile?.length || 0) +
-  (d.memory?.lessons?.length || 0) +
-  (d.memory?.importantFacts?.length || 0);
-
   const d = data;
+
+  const memoryCount =
+    (d.memory?.profile?.length || 0) +
+    (d.memory?.lessons?.length || 0) +
+    (d.memory?.importantFacts?.length || 0);
+
   $("restartBox").innerHTML =
     `<b>おかえり、AKIRA。</b><br>` +
     `目的：${esc(d.goal || "未設定")}<br>` +
     `現在地：${esc(d.state || "未設定")}<br>` +
     `次の一手：${esc(d.next || "未設定")}<br>` +
     `タスク：${d.tasks.filter(t => !t.done).length}件未完了｜` +
-    `未解決：${d.unresolved.length}件｜判断：${d.decisions.length}件｜記憶：${memoryCount}件`;
+    `未解決：${d.unresolved.length}件｜` +
+    `判断：${d.decisions.length}件｜` +
+    `記憶：${memoryCount}件`;
 
-
-  addMsg("nexa",
+  addMsg(
+    "nexa",
     `前回状態を確認した。\n目的：${d.goal || "未設定"}` +
     `\n現在地：${d.state || "未設定"}` +
     `\n次の一手：${d.next || "未設定"}` +
     `\n未完了タスク：${d.tasks.filter(t => !t.done).length}件` +
-    `\n未解決事項：${d.unresolved.length}件\nここから続けよう。`
+    `\n未解決事項：${d.unresolved.length}件` +
+    `\n記憶：${memoryCount}件` +
+    `\nここから続けよう。`
   );
 }
 
