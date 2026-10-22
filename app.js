@@ -565,29 +565,44 @@ function acceptStateCandidate() {
     addMsg("nexa", "状態更新候補を反映して保存した。");
     stateCandidate = null;
   }
-}
+}const pendingTasks =
+  
 function recommendNextAction() {
-  const pendingTasks =
+  function buildRecommendationReport() {
+  const rec = recommendNextAction();
+
+  return (
+    "軍師レポート\n\n" +
+
+    "推奨する次の行動\n" +
+    rec.action +
+
+    "\n\n理由\n" +
+    rec.reason +
+
+    "\n\n現在の目的\n" +
+    (data.goal || "未設定") +
+
+    "\n\n未完了タスク\n" +
+    ((data.tasks || [])
+      .filter(t => !t.done)
+      .length) +
+    "件"
+  );
+}
+
     (data.tasks || []).filter(t => !t.done);
 
   const unresolved =
     (data.unresolved || []).slice(-5);
 
-  const memories =
+  const preferences =
     data.memory?.profile || [];
 
   const goal = data.goal || "未設定";
 
-  if (pendingTasks.length) {
-    const task = pendingTasks[0];
+}
 
-    const reasons = [];
-
-    reasons.push("未完了タスクである");
-
-    if (goal !== "未設定") {
-      reasons.push(`目的「${goal}」に近づける`);
-    }
 
     const simplePreference = memories.some(
       x => /シンプル|簡潔|最小/.test(x.text)
