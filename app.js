@@ -597,22 +597,29 @@ function exportState() {
     const json =
       JSON.stringify(data, null, 2);
 
-    const blob =
-      new Blob([json], {
-        type: "application/json"
-      });
+    const backupText =
+      document.createElement("textarea");
 
-    const url =
-      URL.createObjectURL(blob);
+    backupText.value = json;
 
-    window.open(url);
+    backupText.style.position = "fixed";
+    backupText.style.left = "-9999px";
+
+    document.body.appendChild(backupText);
+
+    backupText.select();
+
+    document.execCommand("copy");
+
+    document.body.removeChild(backupText);
 
     addMsg(
       "nexa",
-      "JSONバックアップを生成した。表示された内容を保存してね。"
+      "バックアップJSONをクリップボードへコピーした。メモアプリに貼り付けて保存してね。"
     );
 
   } catch (e) {
+
     console.error(e);
 
     addMsg(
@@ -621,7 +628,6 @@ function exportState() {
     );
   }
 }
-
 
 function importState(file) {
   if (!file) return;
