@@ -592,6 +592,82 @@ function buildRecommendationReport() {
     "件"
   );
 }
+function exportState() {
+  try {
+    const blob = new Blob(
+      [JSON.stringify(data, null, 2)],
+      { type: "application/json" }
+    );
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+
+    a.download =
+      `nexa-backup-${Date.now()}.json`;
+
+    a.click();
+
+    URL.revokeObjectURL(url);
+
+    addMsg(
+      "nexa",
+      "JSONバックアップを保存した。"
+    );
+
+    return true;
+
+  } catch (e) {
+    console.error(e);
+
+    addMsg(
+      "nexa",
+      "JSONバックアップの作成に失敗した。"
+    );
+
+    return false;
+  }
+}
+
+function importState(file) {
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = e => {
+    try {
+
+      const restored =
+        JSON.parse(e.target.result);
+
+      data = {
+        ...createEmptyState(),
+        ...restored
+      };
+
+      if (persist()) {
+        render();
+
+        addMsg(
+          "nexa",
+          "JSONバックアップから復元した。"
+        );
+      }
+
+    } catch (err) {
+
+      console.error(err);
+
+      addMsg(
+        "nexa",
+        "JSONファイルを読み込めなかった。"
+      );
+    }
+  };
+
+  reader.readAsText(file);
+}
 
 function dismissStateCandidate() {
   if (!stateCandidate) return;
