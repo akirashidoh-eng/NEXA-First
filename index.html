@@ -6,7 +6,16 @@
   name="nexa-current-state"
   autocomplete="off"
   placeholder="今どうなっている？"
-></textarea><label style="margin-top:10px">次にやること</label><input id="next" placeholder="例：動作確認をする"><div class="row" style="margin-top:10px"><button onclick="saveState()">状態を保存</button><button class="secondary" onclick="restart()">前回状態を確認</button><button class="warn" onclick="clearAll()">保存状態を消去</button></div></section>
+></textarea><label style="margin-top:10px">次にやること</label><input id="next" placeholder="例：動作確認をする"><div class="row" style="margin-top:10px"><button onclick="saveState()">状態を保存</button><button class="secondary" onclick="restart()">前回状態を確認</button><button onclick="exportState()">
+  JSONバックアップ
+</button>
+
+<input
+  type="file"
+  id="restoreFile"
+  accept=".json"
+  onchange="importState(this.files[0])">
+<button class="warn" onclick="clearAll()">保存状態を消去</button></div></section>
   <section class="card" id="updateCandidate" hidden>
   <label>状態更新候補</label>
   <div id="candidateText" class="small"></div>
