@@ -594,25 +594,24 @@ function buildRecommendationReport() {
 }
 function exportState() {
   try {
+
     const json =
       JSON.stringify(data, null, 2);
 
-    const blob =
-      new Blob([json], {
-        type: "application/json"
-      });
+    const backupWindow =
+      window.open("", "_blank");
 
-    const url =
-      URL.createObjectURL(blob);
-
-    window.open(url);
+    backupWindow.document.write(
+      `<pre>${json}</pre>`
+    );
 
     addMsg(
       "nexa",
-      "JSONバックアップを生成した。表示された内容を保存してね。"
+      "バックアップデータを表示した。全部コピーして保存してね。"
     );
 
   } catch (e) {
+
     console.error(e);
 
     addMsg(
@@ -621,7 +620,6 @@ function exportState() {
     );
   }
 }
-
 
 function importState(file) {
   if (!file) return;
