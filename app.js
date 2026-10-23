@@ -594,29 +594,23 @@ function buildRecommendationReport() {
 }
 function exportState() {
   try {
-    const blob = new Blob(
-      [JSON.stringify(data, null, 2)],
-      { type: "application/json" }
-    );
+    const json =
+      JSON.stringify(data, null, 2);
 
-    const url = URL.createObjectURL(blob);
+    const blob =
+      new Blob([json], {
+        type: "application/json"
+      });
 
-    const a = document.createElement("a");
-    a.href = url;
+    const url =
+      URL.createObjectURL(blob);
 
-    a.download =
-      `nexa-backup-${Date.now()}.json`;
-
-    a.click();
-
-    URL.revokeObjectURL(url);
+    window.open(url);
 
     addMsg(
       "nexa",
-      "JSONバックアップを保存した。"
+      "JSONバックアップを生成した。表示された内容を保存してね。"
     );
-
-    return true;
 
   } catch (e) {
     console.error(e);
@@ -625,10 +619,9 @@ function exportState() {
       "nexa",
       "JSONバックアップの作成に失敗した。"
     );
-
-    return false;
   }
 }
+
 
 function importState(file) {
   if (!file) return;
