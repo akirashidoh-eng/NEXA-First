@@ -602,6 +602,7 @@ function exportState() {
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement("a");
+
     a.href = url;
 
     a.download =
@@ -634,7 +635,6 @@ function exportState() {
     return false;
   }
 }
-
 function importState(file) {
   if (!file) return;
 
