@@ -704,6 +704,13 @@ function buildContextReply(v) {
   let reply;
 
   // 記憶の質問を先に判定する
+  if (
+  /初号機チェック|完成チェック|完成度/
+  .test(text)
+) {
+  return completionReport();
+}
+
   if (/軍師|ブリーフィング|状況報告/.test(text)) {
   return (
     memorySummary() +
@@ -1077,6 +1084,95 @@ if (exists) {
   }
 
   return true;
+}
+function completionCheck() {
+
+  const passed = [];
+  const failed = [];
+
+  const check = (ok, name) => {
+    (ok ? passed : failed).push(name);
+  };
+
+  check(
+    !!data.goal,
+    "目的保存"
+  );
+
+  check(
+    localStorage.getItem(KEY),
+    "状態保存"
+  );
+
+  check(
+    data.messages.length > 0,
+    "メッセージ保存"
+  );
+
+  check(
+    typeof remember === "function",
+    "記憶機能"
+  );
+
+  check(
+    typeof recommendNextAction === "function",
+    "軍師機能"
+  );
+
+  check(
+    typeof exportState === "function",
+    "JSONバックアップ"
+  );
+
+  check(
+    typeof importState === "function",
+    "JSON復元"
+  );
+
+  const total =
+    passed.length + failed.length;
+
+  const score =
+    Math.round(
+      (passed.length / total) * 100
+    );
+
+  return {
+    score,
+    passed,
+    failed,
+    status:
+      score >= 90
+        ? "初号機完成候補"
+        : score >= 70
+        ? "開発継続"
+        : "要改善"
+  };
+}
+function completionReport() {
+
+  const r =
+    completionCheck();
+
+  return (
+    "初号機完成チェック\n\n" +
+
+    `進捗率：${r.score}%\n` +
+    `状態：${r.status}\n\n` +
+
+    "完了項目\n" +
+    r.passed
+      .map(x => "✅ " + x)
+      .join("\n") +
+
+    "\n\n未完了項目\n" +
+
+    (r.failed.length
+      ? r.failed
+          .map(x => "❌ " + x)
+          .join("\n")
+      : "なし")
+  );
 }
 
 function memorySummary() {
