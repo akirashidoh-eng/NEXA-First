@@ -635,44 +635,172 @@ function exportState() {
     return false;
   }
 }
+
 function importState(file) {
   if (!file) return;
 
   const reader = new FileReader();
 
   reader.onload = e => {
+    let restored;
+
     try {
+      restored = JSON.parse(e.target.result);
 
-      const restored =
-        JSON.parse(e.target.result);
-
-      data = {
-        ...createEmptyState(),
-        ...restored
-      };
-
-      if (persist()) {
-        render();
-
-        addMsg(
-          "nexa",
-          "JSONバックアップから復元した。"
-        );
+      if (
+        !restored ||
+        typeof restored !== "object" ||
+        Array.isArray(restored)
+      ) {
+        throw new Error("JSONのルート形式が不正です。");
       }
 
+      for (const key of ["goal", "state", "next"]) {
+        if (
+          restored[key] !== undefined &&
+          typeof restored[key] !== "string"
+        ) {
+          throw new Error(`${key} の型が不正です。`);
+        }
+      }
+
+      const arrayKeys = [
+        "assumptions",
+        "decisions",
+        "messages",
+        "unresolved",
+        "doNot",
+        "recommendations",
+        "priorities",
+        "notes",
+        "selfReviews",
+        "tasks"
+      ];
+
+      for (const key of arrayKeys) {
+        if (
+          restored[key] !== undefined &&
+          (
+            !Array.isArray(restored[key]) ||
+            restored[key].some(
+              item =>
+                !item ||
+                typeof item !== "object" ||
+                Array.isArray(item)
+            )
+          )
+        ) {
+          throw new Error(`${key} の形式が不正です。`);
+        }
+      }
+
+      if (
+        restored.tasks?.some(
+          task =>
+            typeof task.text !== "string" ||
+            typeof task.done !== "boolean" ||
+            (typeof task.id !== "string" &&
+             typeof task.id !== "number") ||
+            !/^[\w.-]+$/.test(String(task.id))
+        )
+      ) {
+        throw new Error("タスクの形式が不正です。");
+      }
+
+      if (
+        restored.messages?.some(
+          message =>
+            typeof message.role !== "string" ||
+            typeof message.text !== "string"
+        )
+      ) {
+        throw new Error("メッセージの形式が不正です。");
+      }
+
+      if (
+        restored.memory !== undefined &&
+        (
+          !restored.memory ||
+          typeof restored.memory !== "object" ||
+          Array.isArray(restored.memory)
+        )
+      ) {
+        throw new Error("記憶データの形式が不正です。");
+      }
+
+      const memoryKeys = [
+        "profile",
+        "lessons",
+        "importantFacts"
+      ];
+
+      for (const key of memoryKeys) {
+        const items = restored.memory?.[key];
+
+        if (
+          items !== undefined &&
+          (
+            !Array.isArray(items) ||
+            items.some(
+              item =>
+                !item ||
+                typeof item !== "object" ||
+                Array.isArray(item) ||
+                typeof item.text !== "string"
+            )
+          )
+        ) {
+          throw new Error(`記憶データ ${key} の形式が不正です。`);
+        }
+      }
+
+      restored = {
+        ...createEmptyState(),
+        ...restored,
+        assumptions: restored.assumptions ?? [],
+        decisions: restored.decisions ?? [],
+        messages: restored.messages ?? [],
+        unresolved: restored.unresolved ?? [],
+        doNot: restored.doNot ?? [],
+        recommendations: restored.recommendations ?? [],
+        priorities: restored.priorities ?? [],
+        notes: restored.notes ?? [],
+        selfReviews: restored.selfReviews ?? [],
+        tasks: restored.tasks ?? [],
+        memory: {
+          ...createEmptyState().memory,
+          ...restored.memory
+        }
+      };
     } catch (err) {
-
-      console.error(err);
-
-      addMsg(
-        "nexa",
-        "JSONファイルを読み込めなかった。"
-      );
+      console.error("NEXA import validation error:", err);
+      alert("JSONの形式が不正です。現在のデータは変更していません。");
+      return;
     }
+
+    const previousData = data;
+    data = restored;
+
+    if (!persist()) {
+      data = previousData;
+      return;
+    }
+
+    render();
+
+    addMsg(
+      "nexa",
+      "JSONバックアップから復元した。"
+    );
+  };
+
+  reader.onerror = () => {
+    alert("JSONファイルを読み込めませんでした。");
   };
 
   reader.readAsText(file);
 }
+
 
 function dismissStateCandidate() {
   if (!stateCandidate) return;
